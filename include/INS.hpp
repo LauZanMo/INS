@@ -24,8 +24,9 @@ struct InsOutput {
 
 class INS {
 public:
-  INS(double init_time, Quaterniond init_theta, Vector3d init_velocity,
-      double init_phi, double init_lamda, double init_height);
+  INS(double init_time, Vector3d init_theta, Vector3d init_velocity,
+      double init_phi, double init_lamda, double init_height,
+      Vector3d init_delta_theta, Vector3d init_delta_velocity);
   ~INS();
 
   void SensorUpdate(double time, Vector3d delta_theta, Vector3d delta_velocity);

@@ -52,10 +52,21 @@ int main(int, char **) {
   initial_state.pitch_ = -2.14251290749072;
   initial_state.yaw_ = -75.7498049314083;
 
-  // do not know how to tranform from vector3d to quaterniond
-  INS::INS ins(initial_state.time_, Quaterniond(0, 0, 0, 1),
-               Vector3d(initial_state.velocity_n_, initial_state.velocity_e_,
-                        initial_state.velocity_d_),
-               initial_state.phi_, initial_state.lamda_, initial_state.height_);
-  cout << "Hello, world!" << endl;
+  // INS init and update
+  INS::INS ins(
+      initial_state.time_,
+      Vector3d(initial_state.roll_, initial_state.pitch_, initial_state.yaw_),
+      Vector3d(initial_state.velocity_n_, initial_state.velocity_e_,
+               initial_state.velocity_d_),
+      initial_state.phi_, initial_state.lamda_, initial_state.height_,
+      Vector3d(imu_vec[0].gyro_x_, imu_vec[0].gyro_y_, imu_vec[0].gyro_z_),
+      Vector3d(imu_vec[0].acc_x_, imu_vec[0].acc_y_, imu_vec[0].acc_z_));
+
+  for (int i = 0; i < imu_vec.size(); i++) {
+    ins.SensorUpdate(
+        imu_vec[i].time_,
+        Vector3d(imu_vec[i].gyro_x_, imu_vec[i].gyro_y_, imu_vec[i].gyro_z_),
+        Vector3d(imu_vec[i].acc_x_, imu_vec[i].acc_y_, imu_vec[i].acc_z_));
+    INS::InsOutput ins_output = ins.INSUpdate();
+  }
 }

@@ -12,17 +12,33 @@
 
 namespace INS {
 
-INS::INS(double init_time, Quaterniond init_theta, Vector3d init_velocity,
-         double init_phi, double init_lamda, double init_height)
+INS::INS(double init_time, Vector3d init_theta, Vector3d init_velocity,
+         double init_phi, double init_lamda, double init_height,
+         Vector3d init_delta_theta, Vector3d init_delta_velocity)
     : g_p_(0, 0, 9.80665),
       last_time_(init_time),
-      last_theta_(init_theta),
+      last_theta_(AngleAxisd(degree2rad_ * init_theta[2], Vector3d::UnitZ()) *
+                  AngleAxisd(degree2rad_ * init_theta[1], Vector3d::UnitY()) *
+                  AngleAxisd(degree2rad_ * init_theta[0], Vector3d::UnitX())),
       last_velocity_(init_velocity),
       before_last_velocity_(init_velocity),
       last_position_(Vector3d(degree2rad_ * init_phi, degree2rad_ * init_lamda,
                               init_height)),
-      before_last_omega_ie_(Vector3d(0, 0, 0)),
-      before_last_omega_en_(Vector3d(0, 0, 0)) {}
+      last_delta_theta_(init_delta_theta),
+      last_delta_velocity_(last_delta_velocity_) {
+  double R_M = a_ * (1 - pow(e_, 2)) /
+               sqrt(pow(1 - pow(e_ * sin(degree2rad_ * init_phi), 2), 3));
+  double R_N = a_ / sqrt(1 - pow(e_ * sin(degree2rad_ * init_phi), 2));
+
+  before_last_omega_ie_(0) = omega_e_ * cos(degree2rad_ * init_phi);
+  before_last_omega_ie_(1) = 0;
+  before_last_omega_ie_(2) = -omega_e_ * sin(degree2rad_ * init_phi);
+
+  before_last_omega_en_(0) = init_velocity(1) / (R_N + init_height);
+  before_last_omega_en_(1) = -init_velocity(0) / (R_M + init_height);
+  before_last_omega_en_(2) =
+      -init_velocity(1) * tan(degree2rad_ * init_phi) / (R_N + init_height);
+}
 
 INS::~INS() {}
 
