@@ -4,15 +4,25 @@
  * @brief INS class
  * @version 1.0
  * @date 2021-06-13
- * 
+ *
  * @copyright Copyright (c) 2021 WHU-Drones
- * 
+ *
  */
 #include "INS.hpp"
 
 namespace INS {
 
-INS::INS() : g_p_(0, 0, 9.8) {}
+INS::INS(double init_time, Quaterniond init_theta, Vector3d init_velocity,
+         double init_phi, double init_lamda, double init_height)
+    : g_p_(0, 0, 9.80665),
+      last_time_(init_time),
+      last_theta_(init_theta),
+      last_velocity_(init_velocity),
+      before_last_velocity_(init_velocity),
+      last_position_(Vector3d(degree2rad_ * init_phi, degree2rad_ * init_lamda,
+                              init_height)),
+      before_last_omega_ie_(Vector3d(0, 0, 0)),
+      before_last_omega_en_(Vector3d(0, 0, 0)) {}
 
 INS::~INS() {}
 
@@ -31,9 +41,11 @@ InsOutput INS::INSUpdate() {
   PositionUpdate();
 
   InsOutput ins_output;
-  ins_output.theta = theta_;
+  ins_output.theta = rad2degree_ * theta_.matrix().eulerAngles(2, 1, 0);
   ins_output.velocity = velocity_;
-  ins_output.position = position_;
+  ins_output.position(0) = rad2degree_ * position_(0);
+  ins_output.position(1) = rad2degree_ * position_(1);
+  ins_output.position(2) = position_(2);
 
   DataRecord();
 
@@ -44,7 +56,7 @@ void INS::AttitudeUpdate() {
   // calculate q_b_to_b_last
   Vector3d phi =
       delta_theta_ +
-      1.0 / 12.0 *
+      0.0833333333333333333 *
           last_theta_.matrix().eulerAngles(2, 1, 0).cross(delta_theta_);
 
   Quaterniond q_b_to_b_last(

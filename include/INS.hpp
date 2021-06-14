@@ -4,9 +4,9 @@
  * @brief INS class
  * @version 1.0
  * @date 2021-06-13
- * 
+ *
  * @copyright Copyright (c) 2021 WHU-Drones
- * 
+ *
  */
 #pragma once
 
@@ -17,14 +17,15 @@ using namespace Eigen;
 namespace INS {
 
 struct InsOutput {
-  Quaternion<double> theta;
+  Vector3d theta;
   Vector3d velocity;
   Vector3d position;
 };
 
 class INS {
 public:
-  INS();
+  INS(double init_time, Quaterniond init_theta, Vector3d init_velocity,
+      double init_phi, double init_lamda, double init_height);
   ~INS();
 
   void SensorUpdate(double time, Vector3d delta_theta, Vector3d delta_velocity);
@@ -49,6 +50,9 @@ private:
   const double e_ = 0.08181919104;
   const double omega_e_ = 0.26179938779915;
   const Vector3d g_p_;
+  const double pi_ = 3.1415926535897932384626433832795;
+  const double rad2degree_ = 180.0 / pi_;
+  const double degree2rad_ = pi_ / 180.0;
 
   // member function
   void AttitudeUpdate();
