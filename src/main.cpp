@@ -41,7 +41,7 @@ int main(int, char **) {
 
   // initial state
   INS::INSStorage initial_state;
-  initial_state.time_ = 91620.0;
+  initial_state.time_ = 90698.0;
   initial_state.phi_ = 23.1373950708;
   initial_state.lamda_ = 113.3713651222;
   initial_state.height_ = 2.175;
@@ -62,7 +62,7 @@ int main(int, char **) {
       Vector3d(imu_vec[0].gyro_x_, imu_vec[0].gyro_y_, imu_vec[0].gyro_z_),
       Vector3d(imu_vec[0].acc_x_, imu_vec[0].acc_y_, imu_vec[0].acc_z_));
 
-  for (int i = 0; i < imu_vec.size(); i++) {
+  for (int i = 1; i < imu_vec.size(); i++) {
     ins.SensorUpdate(
         imu_vec[i].time_,
         Vector3d(imu_vec[i].gyro_x_, imu_vec[i].gyro_y_, imu_vec[i].gyro_z_),

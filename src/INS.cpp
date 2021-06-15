@@ -10,22 +10,40 @@
  */
 #include "INS.hpp"
 
+#include <iostream>
+
+using namespace std;
+
 namespace INS {
 
+/**
+ * @brief construct a new INS::INS object
+ *
+ * @param init_time INS init time(s)
+ * @param init_theta INS init euler angle(deg)
+ * @param init_velocity INS init velocity(m/s)
+ * @param init_phi INS init latitude(deg)
+ * @param init_lamda INS init longitude(deg)
+ * @param init_height INS init altitude(m)
+ * @param init_delta_theta INS init gyro data
+ * @param init_delta_velocity INS init acc data
+ */
 INS::INS(double init_time, Vector3d init_theta, Vector3d init_velocity,
          double init_phi, double init_lamda, double init_height,
          Vector3d init_delta_theta, Vector3d init_delta_velocity)
     : g_p_(0, 0, 9.80665),
       last_time_(init_time),
-      last_theta_(AngleAxisd(degree2rad_ * init_theta[2], Vector3d::UnitZ()) *
-                  AngleAxisd(degree2rad_ * init_theta[1], Vector3d::UnitY()) *
-                  AngleAxisd(degree2rad_ * init_theta[0], Vector3d::UnitX())),
       last_velocity_(init_velocity),
       before_last_velocity_(init_velocity),
-      last_position_(Vector3d(degree2rad_ * init_phi, degree2rad_ * init_lamda,
-                              init_height)),
       last_delta_theta_(init_delta_theta),
       last_delta_velocity_(last_delta_velocity_) {
+  last_theta_ =
+      Quaterniond(AngleAxisd(degree2rad_ * init_theta(2), Vector3d::UnitZ()) *
+                  AngleAxisd(degree2rad_ * init_theta(1), Vector3d::UnitY()) *
+                  AngleAxisd(degree2rad_ * init_theta(0), Vector3d::UnitX()));
+  last_position_ =
+      Vector3d(degree2rad_ * init_phi, degree2rad_ * init_lamda, init_height);
+
   double R_M = a_ * (1 - pow(e_, 2)) /
                sqrt(pow(1 - pow(e_ * sin(degree2rad_ * init_phi), 2), 3));
   double R_N = a_ / sqrt(1 - pow(e_ * sin(degree2rad_ * init_phi), 2));
@@ -40,8 +58,18 @@ INS::INS(double init_time, Vector3d init_theta, Vector3d init_velocity,
       -init_velocity(1) * tan(degree2rad_ * init_phi) / (R_N + init_height);
 }
 
+/**
+ * @brief destroy the INS::INS object
+ */
 INS::~INS() {}
 
+/**
+ * @brief sensor update
+ *
+ * @param time sensor update time
+ * @param delta_theta gyro data
+ * @param delta_velocity acc data
+ */
 void INS::SensorUpdate(double time, Vector3d delta_theta,
                        Vector3d delta_velocity) {
   time_ = time;
@@ -51,13 +79,18 @@ void INS::SensorUpdate(double time, Vector3d delta_theta,
   delta_velocity_ = delta_velocity;
 }
 
+/**
+ * @brief INS update
+ *
+ * @return InsOutput: return INS update result
+ */
 InsOutput INS::INSUpdate() {
   AttitudeUpdate();
   VelocityUpdate();
   PositionUpdate();
 
   InsOutput ins_output;
-  ins_output.theta = rad2degree_ * theta_.matrix().eulerAngles(2, 1, 0);
+  ins_output.theta = rad2degree_ * ToEulerAngle(theta_.matrix());
   ins_output.velocity = velocity_;
   ins_output.position(0) = rad2degree_ * position_(0);
   ins_output.position(1) = rad2degree_ * position_(1);
@@ -68,6 +101,11 @@ InsOutput INS::INSUpdate() {
   return ins_output;
 }
 
+/**
+ * @brief attitude update
+ *
+ * @note
+ */
 void INS::AttitudeUpdate() {
   // calculate q_b_to_b_last
   Vector3d phi =

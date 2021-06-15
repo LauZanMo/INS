@@ -66,6 +66,13 @@ private:
     vec_cross << 0, -vec(2), vec(1), vec(2), 0, -vec(0), -vec(1), vec(0), 0;
     return vec_cross;
   }
+
+  inline Vector3d ToEulerAngle(const Matrix3d mat) {
+    return Vector3d(
+        atan2(mat(2, 1), mat(2, 2)),
+        atan2(-mat(2, 0), sqrt(mat(2, 1) * mat(2, 1) + mat(2, 2) * mat(2, 2))),
+        atan2(mat(1, 0), mat(0, 0)));
+  }
 };
 
 }  // namespace INS
