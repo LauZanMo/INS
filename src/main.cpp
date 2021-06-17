@@ -12,7 +12,7 @@
 #include <iostream>
 #include <vector>
 
-#include "DataTransform.hpp"
+#include "DataStorage.hpp"
 #include "INS.hpp"
 
 using namespace std;
@@ -41,32 +41,40 @@ int main(int, char **) {
 
   // initial state
   INS::INSStorage initial_state;
-  initial_state.time_ = 90698.0;
+  initial_state.time_ = 91620.0;
   initial_state.phi_ = 23.1373950708;
   initial_state.lamda_ = 113.3713651222;
-  initial_state.height_ = 2.175;
-  initial_state.velocity_n_ = 0;
-  initial_state.velocity_e_ = 0;
-  initial_state.velocity_d_ = 0;
+  initial_state.h_ = 2.175;
+  initial_state.v_n_ = 0;
+  initial_state.v_e_ = 0;
+  initial_state.v_d_ = 0;
   initial_state.roll_ = 0.0107951084511778;
   initial_state.pitch_ = -2.14251290749072;
   initial_state.yaw_ = -75.7498049314083;
 
-  // INS init and update
-  INS::INS ins(
-      initial_state.time_,
-      Vector3d(initial_state.roll_, initial_state.pitch_, initial_state.yaw_),
-      Vector3d(initial_state.velocity_n_, initial_state.velocity_e_,
-               initial_state.velocity_d_),
-      initial_state.phi_, initial_state.lamda_, initial_state.height_,
-      Vector3d(imu_vec[0].gyro_x_, imu_vec[0].gyro_y_, imu_vec[0].gyro_z_),
-      Vector3d(imu_vec[0].acc_x_, imu_vec[0].acc_y_, imu_vec[0].acc_z_));
+  INS::INS *ins = nullptr;
 
   for (int i = 1; i < imu_vec.size(); i++) {
-    ins.SensorUpdate(
-        imu_vec[i].time_,
-        Vector3d(imu_vec[i].gyro_x_, imu_vec[i].gyro_y_, imu_vec[i].gyro_z_),
-        Vector3d(imu_vec[i].acc_x_, imu_vec[i].acc_y_, imu_vec[i].acc_z_));
-    INS::InsOutput ins_output = ins.INSUpdate();
+    if (imu_vec[i].time_ == initial_state.time_) {
+      // INS init and update
+      ins = new INS::INS(
+          initial_state.time_,
+          Vector3d(initial_state.roll_, initial_state.pitch_,
+                   initial_state.yaw_),
+          Vector3d(initial_state.v_n_, initial_state.v_e_,
+                   initial_state.v_d_),
+          initial_state.phi_, initial_state.lamda_, initial_state.h_,
+          Vector3d(imu_vec[i].gyro_x_, imu_vec[i].gyro_y_, imu_vec[i].gyro_z_),
+          Vector3d(imu_vec[i].acc_x_, imu_vec[i].acc_y_, imu_vec[i].acc_z_));
+    } else if (imu_vec[i].time_ > initial_state.time_ && ins != nullptr) {
+      ins->SensorUpdate(
+          imu_vec[i].time_,
+          Vector3d(imu_vec[i].gyro_x_, imu_vec[i].gyro_y_, imu_vec[i].gyro_z_),
+          Vector3d(imu_vec[i].acc_x_, imu_vec[i].acc_y_, imu_vec[i].acc_z_));
+      // INS::InsOutput ins_output = ins->INSUpdate();
+      // cout << "position: " << ins_output.position << endl;
+      // cout << "v: " << ins_output.v << endl;
+      // cout << "theta: " << ins_output.theta << endl;
+    }
   }
 }
