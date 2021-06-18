@@ -1,9 +1,9 @@
 /**
- * @file INS.hpp
+ * @file INSMechanization.hpp
  * @author LauZanMo (LauZanMo@whu.edu.cn)
- * @brief INS class
+ * @brief INS mechanization class
  * @version 1.0
- * @date 2021-06-13
+ * @date 2021-06-18
  *
  * @copyright Copyright (c) 2021 WHU-Drones
  *
@@ -18,12 +18,13 @@ using namespace Eigen;
 
 namespace INS {
 
-class INS {
+class INSMechanization {
 public:
-  INS(double init_time, Vector3d init_theta, Vector3d init_velocity,
-      double init_phi, double init_lamda, double init_height,
-      Vector3d init_delta_theta, Vector3d init_delta_velocity);
-  ~INS();
+  INSMechanization(double init_time, Vector3d init_theta,
+                   Vector3d init_velocity, double init_phi, double init_lamda,
+                   double init_height, Vector3d init_delta_theta,
+                   Vector3d init_delta_velocity);
+  ~INSMechanization();
 
   void SensorUpdate(double time, Vector3d delta_theta, Vector3d delta_velocity);
   INSStorage MechanizationUpdate();
@@ -35,18 +36,17 @@ private:
 
   // INS mechanization data
   double time_, last_time_, delta_time_;
-  Quaterniond q_b_to_n_, q_b_last_to_n_last_;
   Vector3d v_proj_n_, last_v_proj_n_, before_last_v_proj_n_;
   Quaterniond q_n_to_e_, q_n_last_to_e_last_;
   double h_, h_last_;
+  Quaterniond q_b_to_n_, q_b_last_to_n_last_;
 
-  Vector3d omega_in_proj_n_, last_omega_in_proj_n_;
   Vector3d omega_ie_midway_proj_n_;
   Vector3d omega_en_midway_proj_n_;
 
+  Vector3d v_midway_proj_n_;
   Quaterniond q_n_midway_to_e_midway_;
   double h_midway_;
-  Vector3d v_midway_proj_n_;
   Vector3d g_proj_n_;
 
   // constant
@@ -82,26 +82,23 @@ private:
   }
 
   inline AngleAxisd ToAngleAxis(Vector3d vec) {
-    return AngleAxisd(vec.norm(), vec / vec.norm());
+    return AngleAxisd(vec.norm(), vec.normalized());
   }
 
-  Vector3d CalaulateZeta(const Vector3d v_midway_proj_n,
-                         const Quaterniond q_n_midway_to_e_midway,
-                         const double h_midway, const double delta_t) {
-    Vector2d geodetic_vec =
-        ToGeodeticVector(q_n_midway_to_e_midway.toRotationMatrix());
+  Vector3d CalaulateZeta(const Vector3d v_proj_n, const Quaterniond q_n_to_e,
+                         const double h, const double delta_t) {
+    Vector2d geodetic_vec = ToGeodeticVector(q_n_to_e.toRotationMatrix());
 
-    double R_M_midway = a_ * (1 - pow(e_, 2)) /
-                        sqrt(pow(1 - pow(e_ * sin(geodetic_vec(0)), 2), 3));
-    double R_N_midway = a_ / sqrt(1 - pow(e_ * sin(geodetic_vec(0)), 2));
+    double R_M = a_ * (1 - pow(e_, 2)) /
+                 sqrt(pow(1 - pow(e_ * sin(geodetic_vec(0)), 2), 3));
+    double R_N = a_ / sqrt(1 - pow(e_ * sin(geodetic_vec(0)), 2));
 
     omega_ie_midway_proj_n_ = Vector3d(omega_e_ * cos(geodetic_vec(0)), 0,
                                        -omega_e_ * sin(geodetic_vec(0)));
 
-    omega_en_midway_proj_n_ = Vector3d(
-        v_midway_proj_n(1) / (R_N_midway + h_midway),
-        -v_midway_proj_n(0) / (R_M_midway + h_midway),
-        -v_midway_proj_n(1) * tan(geodetic_vec(0)) / (R_N_midway + h_midway));
+    omega_en_midway_proj_n_ =
+        Vector3d(v_proj_n(1) / (R_N + h), -v_proj_n(0) / (R_M + h),
+                 -v_proj_n(1) * tan(geodetic_vec(0)) / (R_N + h));
 
     return (omega_ie_midway_proj_n_ + omega_en_midway_proj_n_) * delta_t;
   }

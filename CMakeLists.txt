@@ -13,7 +13,7 @@ include_directories(
 
 add_executable(${PROJECT_NAME}
   src/main.cpp
-  src/INS.cpp
+  src/INSMechanization.cpp
 )
 
 target_link_libraries(${PROJECT_NAME}

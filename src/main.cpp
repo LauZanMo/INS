@@ -13,7 +13,7 @@
 #include <vector>
 
 #include "DataStorage.hpp"
-#include "INS.hpp"
+#include "INSMechanization.hpp"
 
 using namespace std;
 
@@ -52,27 +52,62 @@ int main(int, char **) {
   initial_state.pitch_ = -2.14251290749072;
   initial_state.yaw_ = -75.7498049314083;
 
-  INS::INS *ins = nullptr;
+  INS::INSMechanization *ins_mechanization = nullptr;
+  int begin;
 
-  for (int i = 1; i < imu_vec.size(); i++) {
+  for (int i = 0; i < imu_vec.size(); i++) {
     if (imu_vec[i].time_ == initial_state.time_) {
       // INS init and update
-      ins = new INS::INS(
+      ins_mechanization = new INS::INSMechanization(
           initial_state.time_,
           Vector3d(initial_state.roll_, initial_state.pitch_,
                    initial_state.yaw_),
-          Vector3d(initial_state.v_n_, initial_state.v_e_,
-                   initial_state.v_d_),
+          Vector3d(initial_state.v_n_, initial_state.v_e_, initial_state.v_d_),
           initial_state.phi_, initial_state.lamda_, initial_state.h_,
           Vector3d(imu_vec[i].gyro_x_, imu_vec[i].gyro_y_, imu_vec[i].gyro_z_),
           Vector3d(imu_vec[i].acc_x_, imu_vec[i].acc_y_, imu_vec[i].acc_z_));
-    } else if (imu_vec[i].time_ > initial_state.time_ && ins != nullptr) {
-      ins->SensorUpdate(
+      begin = i;
+
+    } else if (imu_vec[i].time_ > initial_state.time_ &&
+               ins_mechanization != nullptr) {
+      ins_mechanization->SensorUpdate(
           imu_vec[i].time_,
           Vector3d(imu_vec[i].gyro_x_, imu_vec[i].gyro_y_, imu_vec[i].gyro_z_),
           Vector3d(imu_vec[i].acc_x_, imu_vec[i].acc_y_, imu_vec[i].acc_z_));
-      // INS::InsOutput ins_output = ins->INSUpdate();
-      // cout << "position: " << ins_output.position << endl;
+
+      INS::INSStorage mechanization_output =
+          ins_mechanization->MechanizationUpdate();
+
+      // cout << "my position: " << endl;
+      // cout << mechanization_output.phi_ << endl;
+      // cout << mechanization_output.lamda_ << endl;
+      // cout << mechanization_output.h_ << endl;
+
+      // cout << "ref position: " << endl;
+      // cout << ref_vec[i - begin].phi_ << endl;
+      // cout << ref_vec[i - begin].lamda_ << endl;
+      // cout << ref_vec[i - begin].h_ << endl;
+
+      // cout << "my velocity: " << endl;
+      // cout << mechanization_output.v_n_ << endl;
+      // cout << mechanization_output.v_e_ << endl;
+      // cout << mechanization_output.v_d_ << endl;
+
+      // cout << "ref velocity: " << endl;
+      // cout << ref_vec[i - begin].v_n_ << endl;
+      // cout << ref_vec[i - begin].v_e_ << endl;
+      // cout << ref_vec[i - begin].v_d_ << endl;
+
+      cout << "my attitude: " << endl;
+      cout << mechanization_output.roll_ << endl;
+      cout << mechanization_output.pitch_ << endl;
+      cout << mechanization_output.yaw_ << endl;
+
+      cout << "ref attitude: " << endl;
+      cout << ref_vec[i - begin].roll_ << endl;
+      cout << ref_vec[i - begin].pitch_ << endl;
+      cout << ref_vec[i - begin].yaw_ << endl;
+
       // cout << "v: " << ins_output.v << endl;
       // cout << "theta: " << ins_output.theta << endl;
     }

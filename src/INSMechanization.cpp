@@ -1,14 +1,14 @@
 /**
- * @file INS.cpp
+ * @file INSMechanization.cpp
  * @author LauZanMo (LauZanMo@whu.edu.cn)
- * @brief INS class
+ * @brief INS mechanization class
  * @version 1.0
- * @date 2021-06-13
+ * @date 2021-06-18
  *
  * @copyright Copyright (c) 2021 WHU-Drones
  *
  */
-#include "INS.hpp"
+#include "INSMechanization.hpp"
 
 #include <iostream>
 
@@ -17,7 +17,7 @@ using namespace std;
 namespace INS {
 
 /**
- * @brief construct a new INS::INS object
+ * @brief construct a new INSMechanization::INSMechanization object
  *
  * @param init_time INS init time(s)
  * @param init_theta INS init euler angle(deg)
@@ -28,9 +28,11 @@ namespace INS {
  * @param init_delta_theta INS init gyro data
  * @param init_delta_velocity INS init acc data
  */
-INS::INS(double init_time, Vector3d init_theta, Vector3d init_velocity,
-         double init_phi, double init_lamda, double init_height,
-         Vector3d init_delta_theta, Vector3d init_delta_velocity)
+INSMechanization::INSMechanization(double init_time, Vector3d init_theta,
+                                   Vector3d init_velocity, double init_phi,
+                                   double init_lamda, double init_height,
+                                   Vector3d init_delta_theta,
+                                   Vector3d init_delta_velocity)
     : g_proj_n_(0, 0, 9.80665),
       omega_ie_proj_e_(0, 0, 7.2921151467e-5),
       last_time_(init_time),
@@ -53,40 +55,27 @@ INS::INS(double init_time, Vector3d init_theta, Vector3d init_velocity,
       Quaterniond(AngleAxisd(degree2rad_ * init_theta(2), Vector3d::UnitZ()) *
                   AngleAxisd(degree2rad_ * init_theta(1), Vector3d::UnitY()) *
                   AngleAxisd(degree2rad_ * init_theta(0), Vector3d::UnitX()));
-
-  double R_M = a_ * (1 - pow(e_, 2)) /
-               sqrt(pow(1 - pow(e_ * sin(degree2rad_ * init_phi), 2), 3));
-  double R_N = a_ / sqrt(1 - pow(e_ * sin(degree2rad_ * init_phi), 2));
-
-  // before_last_omega_ie_(0) = omega_e_ * cos(degree2rad_ * init_phi);
-  // before_last_omega_ie_(1) = 0;
-  // before_last_omega_ie_(2) = -omega_e_ * sin(degree2rad_ * init_phi);
-
-  // before_last_omega_en_(0) = init_velocity(1) / (R_N + init_height);
-  // before_last_omega_en_(1) = -init_velocity(0) / (R_M + init_height);
-  // before_last_omega_en_(2) =
-  //     -init_velocity(1) * tan(degree2rad_ * init_phi) / (R_N + init_height);
 }
 
 /**
- * @brief destroy the INS::INS object
+ * @brief destroy the INSMechanization::INS object
  */
-INS::~INS() {}
+INSMechanization::~INSMechanization() {}
 
 /**
  * @brief sensor update
  *
  * @param time sensor update time
  * @param delta_theta gyro data
- * @param delta_velocity acc data
+ * @param delta_v acc data
  */
-void INS::SensorUpdate(double time, Vector3d delta_theta,
-                       Vector3d delta_velocity) {
+void INSMechanization::SensorUpdate(double time, Vector3d delta_theta,
+                                    Vector3d delta_v) {
   time_ = time;
   delta_time_ = time - last_time_;
 
   delta_theta_ = delta_theta;
-  delta_v_ = delta_velocity;
+  delta_v_ = delta_v;
 }
 
 /**
@@ -94,7 +83,7 @@ void INS::SensorUpdate(double time, Vector3d delta_theta,
  *
  * @return INSStorage: return INS update result
  */
-INSStorage INS::MechanizationUpdate() {
+INSStorage INSMechanization::MechanizationUpdate() {
   VelocityUpdate();
   PositionUpdate();
   AttitudeUpdate();
@@ -121,40 +110,12 @@ INSStorage INS::MechanizationUpdate() {
   return mechanization_output;
 }
 
-/**
- * @brief attitude update
- *
- * @note
- */
-void INS::AttitudeUpdate() {
-  h_midway_ = 0.5 * (h_last_ + h_);
-
-  Quaterniond q_delta_theta = q_n_last_to_e_last_.inverse() * q_n_to_e_;
-  AngleAxisd vec(q_delta_theta);
-  vec.angle() = 0.5 * vec.angle();
-  Quaterniond q_half_delta_theta(vec);
-  q_n_midway_to_e_midway_ = q_n_last_to_e_last_ * q_half_delta_theta;
-
-  // calculate q_b_to_b_last
-  Vector3d phi =
-      delta_theta_ + 1.0 / 12.0 * last_delta_theta_.cross(delta_theta_);
-
-  Quaterniond q_b_to_b_last(ToAngleAxis(phi));
-
-  // calculate q_n_last_to_n
-  Vector3d zeta = CalaulateZeta(v_midway_proj_n_, q_n_midway_to_e_midway_,
-                                h_midway_, delta_time_);
-  Quaterniond q_n_last_to_n(ToAngleAxis(-zeta));
-
-  // calculate theta
-  q_b_to_n_ = q_n_last_to_n * q_b_last_to_n_last_ * q_b_to_b_last;
-}
-
-void INS::VelocityUpdate() {
+void INSMechanization::VelocityUpdate() {
   // calculate delta_v_f_proj_n
   v_midway_proj_n_ = 1.5 * last_v_proj_n_ - 0.5 * before_last_v_proj_n_;
 
-  Vector3d zeta_midway = last_omega_in_proj_n_ * 0.5 * delta_time_;
+  Vector3d zeta_midway = CalaulateZeta(last_v_proj_n_, q_n_last_to_e_last_,
+                                       h_last_, 0.5 * delta_time_);
   Quaterniond q_n_midway_to_n_last(ToAngleAxis(zeta_midway));
 
   Vector3d xi_midway = omega_ie_proj_e_ * 0.5 * delta_time_;
@@ -188,7 +149,8 @@ void INS::VelocityUpdate() {
   v_proj_n_ = last_v_proj_n_ + delta_v_f_proj_n + delta_v_g_and_coriolis_proj_n;
 }
 
-void INS::PositionUpdate() {
+void INSMechanization::PositionUpdate() {
+  // update midway data
   v_midway_proj_n_ = 0.5 * (last_v_proj_n_ + v_proj_n_);
 
   // calculate height
@@ -200,12 +162,38 @@ void INS::PositionUpdate() {
   Quaterniond q_n_to_n_last(ToAngleAxis(zeta));
 
   Vector3d xi = omega_ie_proj_e_ * delta_time_;
-  Quaterniond q_e_last_to_e = Quaterniond(ToAngleAxis(-xi));
+  Quaterniond q_e_last_to_e(ToAngleAxis(-xi));
 
   q_n_to_e_ = q_e_last_to_e * q_n_last_to_e_last_ * q_n_to_n_last;
 }
 
-void INS::DataRecord() {
+void INSMechanization::AttitudeUpdate() {
+  // update midway data
+  h_midway_ = 0.5 * (h_last_ + h_);
+
+  Quaterniond q_delta_theta = q_n_last_to_e_last_.inverse() * q_n_to_e_;
+  AngleAxisd vec(q_delta_theta);
+  vec.angle() = 0.5 * vec.angle();
+  Quaterniond q_half_delta_theta(vec);
+  q_n_midway_to_e_midway_ = q_n_last_to_e_last_ * q_half_delta_theta;
+
+  // calculate q_b_to_b_last
+  Vector3d phi =
+      delta_theta_ + 1.0 / 12.0 * last_delta_theta_.cross(delta_theta_);
+
+  Quaterniond q_b_to_b_last(ToAngleAxis(phi));
+
+  // calculate q_n_last_to_n
+  Vector3d zeta = CalaulateZeta(v_midway_proj_n_, q_n_midway_to_e_midway_,
+                                h_midway_, delta_time_);
+  Quaterniond q_n_last_to_n(ToAngleAxis(-zeta));
+
+  // calculate theta
+  q_b_to_n_ = q_n_last_to_n * q_b_last_to_n_last_ * q_b_to_b_last;
+  q_b_to_n_.normalize();
+}
+
+void INSMechanization::DataRecord() {
   // time record
   last_time_ = time_;
 
@@ -214,11 +202,11 @@ void INS::DataRecord() {
   last_delta_v_ = delta_v_;
 
   // INS data record
-  q_b_last_to_n_last_ = q_b_to_n_;
   before_last_v_proj_n_ = last_v_proj_n_;
   last_v_proj_n_ = v_proj_n_;
   q_n_last_to_e_last_ = q_n_to_e_;
-  last_omega_in_proj_n_ = omega_in_proj_n_;
+  h_last_ = h_;
+  q_b_last_to_n_last_ = q_b_to_n_;
 }
 
 }  // namespace INS
