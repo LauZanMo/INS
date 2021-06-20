@@ -78,15 +78,15 @@ int main(int, char **) {
       INS::INSStorage mechanization_output =
           ins_mechanization->MechanizationUpdate();
 
-      // cout << "my position: " << endl;
-      // cout << mechanization_output.phi_ << endl;
-      // cout << mechanization_output.lamda_ << endl;
-      // cout << mechanization_output.h_ << endl;
+      cout << "my position: " << endl;
+      cout << mechanization_output.phi_ << endl;
+      cout << mechanization_output.lamda_ << endl;
+      cout << mechanization_output.h_ << endl;
 
-      // cout << "ref position: " << endl;
-      // cout << ref_vec[i - begin].phi_ << endl;
-      // cout << ref_vec[i - begin].lamda_ << endl;
-      // cout << ref_vec[i - begin].h_ << endl;
+      cout << "ref position: " << endl;
+      cout << ref_vec[i - begin].phi_ << endl;
+      cout << ref_vec[i - begin].lamda_ << endl;
+      cout << ref_vec[i - begin].h_ << endl;
 
       // cout << "my velocity: " << endl;
       // cout << mechanization_output.v_n_ << endl;
@@ -98,18 +98,15 @@ int main(int, char **) {
       // cout << ref_vec[i - begin].v_e_ << endl;
       // cout << ref_vec[i - begin].v_d_ << endl;
 
-      cout << "my attitude: " << endl;
-      cout << mechanization_output.roll_ << endl;
-      cout << mechanization_output.pitch_ << endl;
-      cout << mechanization_output.yaw_ << endl;
+      // cout << "my attitude: " << endl;
+      // cout << mechanization_output.roll_ << endl;
+      // cout << mechanization_output.pitch_ << endl;
+      // cout << mechanization_output.yaw_ << endl;
 
-      cout << "ref attitude: " << endl;
-      cout << ref_vec[i - begin].roll_ << endl;
-      cout << ref_vec[i - begin].pitch_ << endl;
-      cout << ref_vec[i - begin].yaw_ << endl;
-
-      // cout << "v: " << ins_output.v << endl;
-      // cout << "theta: " << ins_output.theta << endl;
+      // cout << "ref attitude: " << endl;
+      // cout << ref_vec[i - begin].roll_ << endl;
+      // cout << ref_vec[i - begin].pitch_ << endl;
+      // cout << ref_vec[i - begin].yaw_ << endl;
     }
   }
 }

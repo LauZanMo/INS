@@ -100,9 +100,10 @@ INSStorage INSMechanization::MechanizationUpdate() {
   mechanization_output.v_e_ = v_proj_n_(1);
   mechanization_output.v_d_ = v_proj_n_(2);
 
-  Vector2d geodetic_vec = ToGeodeticVector(q_n_to_e_.toRotationMatrix());
-  mechanization_output.phi_ = rad2degree_ * geodetic_vec(0);
-  mechanization_output.lamda_ = rad2degree_ * geodetic_vec(1);
+  Vector2d geodetic_vec =
+      rad2degree_ * ToGeodeticVector(q_n_to_e_.toRotationMatrix());
+  mechanization_output.phi_ = geodetic_vec(0);
+  mechanization_output.lamda_ = geodetic_vec(1);
   mechanization_output.h_ = h_;
 
   DataRecord();
@@ -111,7 +112,7 @@ INSStorage INSMechanization::MechanizationUpdate() {
 }
 
 void INSMechanization::VelocityUpdate() {
-  // calculate delta_v_f_proj_n
+  // update midway data
   v_midway_proj_n_ = 1.5 * last_v_proj_n_ - 0.5 * before_last_v_proj_n_;
 
   Vector3d zeta_midway = CalaulateZeta(last_v_proj_n_, q_n_last_to_e_last_,
@@ -126,6 +127,7 @@ void INSMechanization::VelocityUpdate() {
 
   h_midway_ = h_last_ - last_v_proj_n_(2) * 0.5 * delta_time_;
 
+  // calculate delta_v_f_proj_n
   Vector3d zeta = CalaulateZeta(v_midway_proj_n_, q_n_midway_to_e_midway_,
                                 h_midway_, delta_time_);
 
