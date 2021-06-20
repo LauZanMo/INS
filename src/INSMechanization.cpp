@@ -165,6 +165,7 @@ void INSMechanization::PositionUpdate() {
   Quaterniond q_e_last_to_e(ToAngleAxis(-xi));
 
   q_n_to_e_ = q_e_last_to_e * q_n_last_to_e_last_ * q_n_to_n_last;
+  q_n_to_e_.normalize();
 }
 
 void INSMechanization::AttitudeUpdate() {
