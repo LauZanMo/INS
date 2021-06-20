@@ -51,12 +51,12 @@ private:
 
   // constant
   const double a_ = 6378137.0;
-  const double e_ = 0.08181919104;
+  const double e_2_ = 0.00669437999013;
   const double omega_e_ = 7.2921151467e-5;
-  Vector3d omega_ie_proj_e_;
+  const Vector3d omega_ie_proj_e_;
   const double pi_ = 3.1415926535897932384626433832795;
-  const double rad2degree_ = 180.0 / pi_;
-  const double degree2rad_ = pi_ / 180.0;
+  const double rad2degree_ = 57.29577951308232;
+  const double degree2rad_ = 0.017453292519943295;
 
   // member function
   void VelocityUpdate();
@@ -89,9 +89,9 @@ private:
                          const double h, const double delta_t) {
     Vector2d geodetic_vec = ToGeodeticVector(q_n_to_e.toRotationMatrix());
 
-    double R_M = a_ * (1 - pow(e_, 2)) /
-                 sqrt(pow(1 - pow(e_ * sin(geodetic_vec(0)), 2), 3));
-    double R_N = a_ / sqrt(1 - pow(e_ * sin(geodetic_vec(0)), 2));
+    double R_M =
+        a_ * (1 - e_2_) / pow(1 - e_2_ * pow(sin(geodetic_vec(0)), 2), 1.5);
+    double R_N = a_ / sqrt(1 - e_2_ * pow(sin(geodetic_vec(0)), 2));
 
     omega_ie_midway_proj_n_ = Vector3d(omega_e_ * cos(geodetic_vec(0)), 0,
                                        -omega_e_ * sin(geodetic_vec(0)));

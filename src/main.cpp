@@ -78,6 +78,10 @@ int main(int, char **) {
       INS::INSStorage mechanization_output =
           ins_mechanization->MechanizationUpdate();
 
+<<<<<<< HEAD
+=======
+      cout.precision(12);
+>>>>>>> 27c5628c0ad7d65f607a419684eae26940f0b27d
       cout << "my position: " << endl;
       cout << mechanization_output.phi_ << endl;
       cout << mechanization_output.lamda_ << endl;
@@ -107,6 +111,12 @@ int main(int, char **) {
       // cout << ref_vec[i - begin].roll_ << endl;
       // cout << ref_vec[i - begin].pitch_ << endl;
       // cout << ref_vec[i - begin].yaw_ << endl;
+<<<<<<< HEAD
+=======
+
+      // cout << "v: " << ins_output.v << endl;
+      // cout << "theta: " << ins_output.theta << endl;
+>>>>>>> 27c5628c0ad7d65f607a419684eae26940f0b27d
     }
   }
 }
