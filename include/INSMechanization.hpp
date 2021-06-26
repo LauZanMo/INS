@@ -13,50 +13,44 @@
 #include <Eigen/Geometry>
 
 #include "DataStorage.hpp"
+#include "Utils.hpp"
 
-using namespace Eigen;
+// using namespace Eigen;
 
 namespace INS {
 
 class INSMechanization {
 public:
-  INSMechanization(double init_time, Vector3d init_theta,
-                   Vector3d init_velocity, double init_phi, double init_lamda,
-                   double init_height, Vector3d init_delta_theta,
-                   Vector3d init_delta_velocity);
+  INSMechanization(double init_time, Eigen::Vector3d init_position,
+                   Eigen::Vector3d init_velocity, Eigen::Vector3d init_theta,
+                   Eigen::Vector3d init_delta_theta,
+                   Eigen::Vector3d init_delta_velocity);
+
   ~INSMechanization();
 
-  void SensorUpdate(double time, Vector3d delta_theta, Vector3d delta_velocity);
-  INSStorage MechanizationUpdate();
+  void SensorUpdate(double time, Eigen::Vector3d delta_theta,
+                    Eigen::Vector3d delta_velocity);
+  iNav::RefData MechanizationUpdate();
 
 private:
   // IMU output
-  Vector3d delta_theta_, last_delta_theta_;
-  Vector3d delta_v_, last_delta_v_;
+  Eigen::Vector3d delta_theta_, last_delta_theta_;
+  Eigen::Vector3d delta_v_, last_delta_v_;
 
   // INS mechanization data
   double time_, last_time_, delta_time_;
-  Vector3d v_proj_n_, last_v_proj_n_, before_last_v_proj_n_;
-  Quaterniond q_n_to_e_, q_n_last_to_e_last_;
+  Eigen::Vector3d v_proj_n_, last_v_proj_n_, before_last_v_proj_n_;
+  Eigen::Quaterniond q_n_to_e_, q_n_last_to_e_last_;
   double h_, h_last_;
-  Quaterniond q_b_to_n_, q_b_last_to_n_last_;
+  Eigen::Quaterniond q_b_to_n_, q_b_last_to_n_last_;
 
-  Vector3d omega_ie_midway_proj_n_;
-  Vector3d omega_en_midway_proj_n_;
+  Eigen::Vector3d omega_ie_midway_proj_n_;
+  Eigen::Vector3d omega_en_midway_proj_n_;
 
-  Vector3d v_midway_proj_n_;
-  Quaterniond q_n_midway_to_e_midway_;
+  Eigen::Vector3d v_midway_proj_n_;
+  Eigen::Quaterniond q_n_midway_to_e_midway_;
   double h_midway_;
-  Vector3d g_proj_n_;
-
-  // constant
-  const double a_ = 6378137.0;
-  const double e_2_ = 0.00669437999013;
-  const double omega_e_ = 7.2921151467e-5;
-  const Vector3d omega_ie_proj_e_;
-  const double pi_ = 3.1415926535897932384626433832795;
-  const double rad2degree_ = 57.29577951308232;
-  const double degree2rad_ = 0.017453292519943295;
+  Eigen::Vector3d g_proj_n_;
 
   // member function
   void VelocityUpdate();
@@ -64,44 +58,14 @@ private:
   void AttitudeUpdate();
   void DataRecord();
 
-  inline Matrix3d ToSkewSymmetricMat(const Vector3d vec) {
-    Matrix3d vec_cross;
-    vec_cross << 0, -vec(2), vec(1), vec(2), 0, -vec(0), -vec(1), vec(0), 0;
-    return vec_cross;
-  }
-
-  inline Vector3d ToEulerAngle(const Matrix3d mat) {
-    return Vector3d(
-        atan2(mat(2, 1), mat(2, 2)),
-        atan2(-mat(2, 0), sqrt(mat(2, 1) * mat(2, 1) + mat(2, 2) * mat(2, 2))),
-        atan2(mat(1, 0), mat(0, 0)));
-  }
-
-  inline Vector2d ToGeodeticVector(const Matrix3d mat) {
-    return Vector2d(atan2(-mat(2, 2), mat(2, 0)), atan2(-mat(0, 1), mat(1, 1)));
-  }
-
-  inline AngleAxisd ToAngleAxis(Vector3d vec) {
-    return AngleAxisd(vec.norm(), vec.normalized());
-  }
-
-  Vector3d CalaulateZeta(const Vector3d v_proj_n, const Quaterniond q_n_to_e,
-                         const double h, const double delta_t) {
-    Vector2d geodetic_vec = ToGeodeticVector(q_n_to_e.toRotationMatrix());
-
-    double R_M =
-        a_ * (1 - e_2_) / pow(1 - e_2_ * pow(sin(geodetic_vec(0)), 2), 1.5);
-    double R_N = a_ / sqrt(1 - e_2_ * pow(sin(geodetic_vec(0)), 2));
-
-    omega_ie_midway_proj_n_ = Vector3d(omega_e_ * cos(geodetic_vec(0)), 0,
-                                       -omega_e_ * sin(geodetic_vec(0)));
-
-    omega_en_midway_proj_n_ =
-        Vector3d(v_proj_n(1) / (R_N + h), -v_proj_n(0) / (R_M + h),
-                 -v_proj_n(1) * tan(geodetic_vec(0)) / (R_N + h));
-
-    return (omega_ie_midway_proj_n_ + omega_en_midway_proj_n_) * delta_t;
-  }
+  Eigen::Vector3d ComputeZeta(const Eigen::Vector3d v_proj_n,
+                              const Eigen::Quaterniond q_n_to_e, const double h,
+                              const double delta_t);
+  Eigen::Vector3d ComputeZeta(const Eigen::Vector3d v_proj_n,
+                              const Eigen::Quaterniond q_n_to_e, const double h,
+                              const double delta_t,
+                              Eigen::Vector3d& omega_ie_proj_n,
+                              Eigen::Vector3d& omega_en_proj_n);
 };
 
 }  // namespace INS

@@ -20,6 +20,14 @@ target_link_libraries(${PROJECT_NAME}
   ${EIGEN3_LIBS}
 )
 
+add_executable(${PROJECT_NAME}_test
+  src/test.cpp
+)
+
+target_link_libraries(${PROJECT_NAME}_test
+  ${EIGEN3_LIBS}
+)
+
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 include(CPack)

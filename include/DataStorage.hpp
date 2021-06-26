@@ -2,33 +2,21 @@
 
 #include <Eigen/Geometry>
 
-using namespace Eigen;
+namespace iNav {
 
-namespace INS {
-
-class IMUStorage {
+class IMUData {
 public:
-  double time_;
-  double gyro_x_;
-  double gyro_y_;
-  double gyro_z_;
-  double acc_x_;
-  double acc_y_;
-  double acc_z_;
+  double timestamp;
+  Eigen::Vector3d gyro;
+  Eigen::Vector3d acc;
 };
 
-class INSStorage {
+class RefData {
 public:
-  double time_;
-  double phi_;
-  double lamda_;
-  double h_;
-  double v_n_;
-  double v_e_;
-  double v_d_;
-  double roll_;
-  double pitch_;
-  double yaw_;
+  double timestamp;
+  Eigen::Vector3d pos;
+  Eigen::Vector3d vel;
+  Eigen::Vector3d att;
 };
 
-}  // namespace INS
+}  // namespace iNav
