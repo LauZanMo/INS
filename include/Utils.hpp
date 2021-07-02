@@ -4,9 +4,17 @@
 
 namespace iNav {
 
+/* Geometry */
 const double PI = 3.141592653589793;
 const double RAD_2_DEGREE = 57.29577951308232;
 const double DEGREE_2_RAD = 0.017453292519943295;
+const double DEGREE_PER_HOUR_2_RAD_PER_SECOND = 4.8481368110953e-06;
+const double DEGREE_PER_SQRT_HOUR_2_RAD_PER_SQRT_SECOND = 0.0002908882086657;
+const double METER_PER_SECOND_SQRT_HOUR_2_METER_PER_SECOND_SQRT_SECOND =
+    0.0166666666666667;
+const double MGAL_2_METER_PER_SECOND_SQUARE = 1e-5;
+const double PPM_2_1 = 1e-6;
+const double HOUR_2_SECOND = 3600;
 
 const double OMEGA_E = 7.2921151467e-5;
 const Eigen::Vector3d OMEGA_IE_PROJ_E(0, 0, OMEGA_E);
@@ -48,12 +56,6 @@ inline Eigen::Quaterniond GeodeticVec2Quat(const Eigen::Vector2d& vec) {
                             cos(-PI / 4 - vec[0] / 2) * sin(vec[1] / 2));
 }
 
-inline Eigen::Matrix3d GetSkewSymmetricMat(const Eigen::Vector3d vec) {
-  Eigen::Matrix3d vec_cross;
-  vec_cross << 0, -vec(2), vec(1), vec(2), 0, -vec(0), -vec(1), vec(0), 0;
-  return vec_cross;
-}
-
 inline Eigen::Vector2d ComputeRmRn(const double lat) {
   return Eigen::Vector2d(Ra * (1 - E2) / pow(1 - E2 * sin(lat) * sin(lat), 1.5),
                          Ra / sqrt(1 - E2 * sin(lat) * sin(lat)));
@@ -80,6 +82,13 @@ inline Eigen::Vector3d ComputeGn(const double lat, const double h) {
       0, 0,
       g_lat * (1 - 2.0 / Ra * (1 + F + m - 2 * F * pow(sin(lat), 2)) * h +
                3 * pow(h, 2) / pow(Ra, 2)));
+}
+
+/* Math */
+inline Eigen::Matrix3d GetSkewSymmetricMat(const Eigen::Vector3d vec) {
+  Eigen::Matrix3d vec_cross;
+  vec_cross << 0, -vec(2), vec(1), vec(2), 0, -vec(0), -vec(1), vec(0), 0;
+  return vec_cross;
 }
 
 }  // namespace iNav

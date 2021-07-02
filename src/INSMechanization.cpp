@@ -59,26 +59,25 @@ INSMechanization::~INSMechanization() {}
  * @param delta_theta gyro data
  * @param delta_v acc data
  */
-void INSMechanization::SensorUpdate(double time, Eigen::Vector3d delta_theta,
-                                    Eigen::Vector3d delta_v) {
-  time_ = time;
-  delta_time_ = time - last_time_;
+void INSMechanization::SensorUpdate(iNav::IMUData data) {
+  time_ = data.timestamp;
+  delta_time_ = data.timestamp - last_time_;
 
-  delta_theta_ = delta_theta;
-  delta_v_ = delta_v;
+  delta_theta_ = data.gyro;
+  delta_v_ = data.acc;
 }
 
 /**
  * @brief INS update
  *
- * @return iNav::RefData: return INS update result
+ * @return iNav::NavData: return INS update result
  */
-iNav::RefData INSMechanization::MechanizationUpdate() {
+iNav::NavData INSMechanization::MechanizationUpdate() {
   VelocityUpdate();
   PositionUpdate();
   AttitudeUpdate();
 
-  iNav::RefData mechanization_output;
+  iNav::NavData mechanization_output;
   mechanization_output.timestamp = time_;
 
   mechanization_output.att =

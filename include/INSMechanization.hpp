@@ -28,9 +28,8 @@ public:
 
   ~INSMechanization();
 
-  void SensorUpdate(double time, Eigen::Vector3d delta_theta,
-                    Eigen::Vector3d delta_velocity);
-  iNav::RefData MechanizationUpdate();
+  void SensorUpdate(iNav::IMUData data);
+  iNav::NavData MechanizationUpdate();
 
 private:
   // IMU output

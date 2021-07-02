@@ -22,6 +22,8 @@ target_link_libraries(${PROJECT_NAME}
 
 add_executable(${PROJECT_NAME}_test
   src/test.cpp
+  src/INSMechanization.cpp
+  src/GINS.cpp
 )
 
 target_link_libraries(${PROJECT_NAME}_test

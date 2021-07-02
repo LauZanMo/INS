@@ -30,9 +30,9 @@ int main(int, char **) {
 
   // parse data and save
   iNav::IMUData imu_frame;
-  iNav::RefData ref_frame;
+  iNav::NavData ref_frame;
   vector<iNav::IMUData> imu_vec;
-  vector<iNav::RefData> ref_vec;
+  vector<iNav::NavData> ref_vec;
 
   while (imu_data.read((char *)&imu_frame, sizeof(imu_frame)))
     imu_vec.push_back(imu_frame);
@@ -40,7 +40,7 @@ int main(int, char **) {
     ref_vec.push_back(ref_frame);
 
   // initial state
-  iNav::RefData initial_state;
+  iNav::NavData initial_state;
   initial_state.timestamp = 91620.0;
   initial_state.pos = Eigen::Vector3d(23.1373950708, 113.3713651222, 2.175);
   initial_state.vel = Eigen::Vector3d(0, 0, 0);
@@ -60,10 +60,9 @@ int main(int, char **) {
 
     } else if (imu_vec[i].timestamp > initial_state.timestamp &&
                ins_mechanization != nullptr) {
-      ins_mechanization->SensorUpdate(imu_vec[i].timestamp, imu_vec[i].gyro,
-                                      imu_vec[i].acc);
+      ins_mechanization->SensorUpdate(imu_vec[i]);
 
-      iNav::RefData mechanization_output =
+      iNav::NavData mechanization_output =
           ins_mechanization->MechanizationUpdate();
 
       cout.precision(12);

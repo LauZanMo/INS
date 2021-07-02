@@ -1,3 +1,4 @@
+#include "GINS.hpp"
 #include "Utils.hpp"
 
 #include <Eigen/Geometry>
@@ -47,6 +48,17 @@ int main(int argc, char const* argv[]) {
   cout << f.toRotationMatrix() << endl;
   cout << Quaterniond(iNav::RotationVec2AngleAxis(-d)).toRotationMatrix()
        << endl;
+
+  c = Vector3d(a.array().pow(2)).asDiagonal();
+  cout << c << endl;
+
+  cout.precision(32);
+
+  cout << iNav::PI / 3600 / 180 << endl;
+  cout << iNav::PI / 60 / 180 << endl;
+  cout << 1 / (double)60.0 << endl;
+
+  cout << a.array()/(1+a.array()) << endl;
 
   return 0;
 }
