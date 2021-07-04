@@ -9,47 +9,54 @@
 namespace iNav {
 
 using ErrorType = Eigen::Matrix<double, 21, 1>;
-using NoiseType = Eigen::Matrix<double, 18, 1>;
 using qType = Eigen::Matrix<double, 18, 18>;
 using GType = Eigen::Matrix<double, 21, 18>;
+using HType = Eigen::Matrix<double, 3, 21>;
+using KType = Eigen::Matrix<double, 21, 3>;
 using Matrix21d = Eigen::Matrix<double, 21, 21>;
 
-class GINS {
+class GINS : INS::INSMechanization {
 public:
-  GINS(double init_time, Eigen::Vector3d init_position,
-       Eigen::Vector3d init_position_std, Eigen::Vector3d init_velocity,
-       Eigen::Vector3d init_velocity_std, Eigen::Vector3d init_theta,
-       Eigen::Vector3d init_theta_std, IMUParam init_param,
-       Eigen::Vector3d init_delta_theta, Eigen::Vector3d init_delta_velocity);
+  GINS(const double& init_time, const Eigen::Vector3d& init_position,
+       const Eigen::Vector3d& init_position_std,
+       const Eigen::Vector3d& init_velocity,
+       const Eigen::Vector3d& init_velocity_std,
+       const Eigen::Vector3d& init_theta, const Eigen::Vector3d& init_theta_std,
+       const IMUParam& init_imu_param, const Eigen::Vector3d& l_b,
+       const Eigen::Vector3d& init_delta_theta,
+       const Eigen::Vector3d& init_delta_velocity);
   ~GINS();
 
-  NavData MechanizationUpdate(IMUData data);
+  NavData Mechanization(IMUData data);
   void Prediction();
+  NavData GNSSUpdate(GnssData gnss_data, IMUData imu_data);
 
 private:
-  double time_, last_time_, delta_time_;
-  Eigen::Vector3d delta_r_, delta_v_, Phi_;
   Eigen::Vector3d gyro_bias_, acc_bias_, gyro_scalar_, acc_scalar_;
+  Eigen::Vector3d l_b_;
   ErrorType delta_x_, last_delta_x_;
-  NoiseType w_, last_w_;
   qType q_;
-  GType G_, last_G_, Q_, last_Q_;
+  GType G_, last_G_;
   Matrix21d P_, last_P_;
-  INS::INSMechanization ins_mechanization_;
+  IMUParam IMU_param_;
 
-  Matrix21d SetP(Eigen::Vector3d position_std, Eigen::Vector3d velocity_std,
-                 Eigen::Vector3d theta_std, IMUParam param);
-
-  qType Setq(IMUParam param);
-
-  inline Eigen::Vector3d CorrectGyroError(Eigen::Vector3d gyro_raw) {
+  inline Eigen::Vector3d CorrectGyroError(const Eigen::Vector3d& gyro_raw) {
     return Eigen::Vector3d((gyro_raw - gyro_bias_ * delta_time_).array() /
                            (1 + gyro_scalar_.array()));
   }
-  inline Eigen::Vector3d CorrectAccError(Eigen::Vector3d acc_raw) {
+  inline Eigen::Vector3d CorrectAccError(const Eigen::Vector3d& acc_raw) {
     return Eigen::Vector3d((acc_raw - acc_bias_ * delta_time_).array() /
                            (1 + acc_scalar_.array()));
   }
+
+  Matrix21d SetP(const Eigen::Vector3d& position_std,
+                 const Eigen::Vector3d& velocity_std,
+                 const Eigen::Vector3d& theta_std, const IMUParam& param);
+  qType Setq(const IMUParam& param);
+  Matrix21d ComputeF();
+  GType ComputeG();
+  HType ComputeHr();
+  NavData CorrectNavDataAndIMUError(const NavData& data, ErrorType& error);
 };
 
 }  // namespace iNav

@@ -213,10 +213,9 @@ void INSMechanization::DataRecord() {
   q_b_last_to_n_last_ = q_b_to_n_;
 }
 
-Eigen::Vector3d INSMechanization::ComputeZeta(const Eigen::Vector3d v_proj_n,
-                                              const Eigen::Quaterniond q_n_to_e,
-                                              const double h,
-                                              const double delta_t) {
+Eigen::Vector3d INSMechanization::ComputeZeta(
+    const Eigen::Vector3d& v_proj_n, const Eigen::Quaterniond& q_n_to_e,
+    const double& h, const double& delta_t) {
   Eigen::Vector2d geodetic_vec = iNav::Quat2GeodeticVec(q_n_to_e);
 
   Eigen::Vector2d R = iNav::ComputeRmRn(geodetic_vec(0));
@@ -229,8 +228,8 @@ Eigen::Vector3d INSMechanization::ComputeZeta(const Eigen::Vector3d v_proj_n,
 }
 
 Eigen::Vector3d INSMechanization::ComputeZeta(
-    const Eigen::Vector3d v_proj_n, const Eigen::Quaterniond q_n_to_e,
-    const double h, const double delta_t, Eigen::Vector3d& omega_ie_proj_n,
+    const Eigen::Vector3d& v_proj_n, const Eigen::Quaterniond& q_n_to_e,
+    const double& h, const double& delta_t, Eigen::Vector3d& omega_ie_proj_n,
     Eigen::Vector3d& omega_en_proj_n) {
   Eigen::Vector2d geodetic_vec = iNav::Quat2GeodeticVec(q_n_to_e);
 

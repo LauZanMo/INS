@@ -31,7 +31,7 @@ public:
   void SensorUpdate(iNav::IMUData data);
   iNav::NavData MechanizationUpdate();
 
-private:
+protected:
   // IMU output
   Eigen::Vector3d delta_theta_, last_delta_theta_;
   Eigen::Vector3d delta_v_, last_delta_v_;
@@ -51,18 +51,19 @@ private:
   double h_midway_;
   Eigen::Vector3d g_proj_n_;
 
+private:
   // member function
   void VelocityUpdate();
   void PositionUpdate();
   void AttitudeUpdate();
   void DataRecord();
 
-  Eigen::Vector3d ComputeZeta(const Eigen::Vector3d v_proj_n,
-                              const Eigen::Quaterniond q_n_to_e, const double h,
-                              const double delta_t);
-  Eigen::Vector3d ComputeZeta(const Eigen::Vector3d v_proj_n,
-                              const Eigen::Quaterniond q_n_to_e, const double h,
-                              const double delta_t,
+  Eigen::Vector3d ComputeZeta(const Eigen::Vector3d& v_proj_n,
+                              const Eigen::Quaterniond& q_n_to_e,
+                              const double& h, const double& delta_t);
+  Eigen::Vector3d ComputeZeta(const Eigen::Vector3d& v_proj_n,
+                              const Eigen::Quaterniond& q_n_to_e,
+                              const double& h, const double& delta_t,
                               Eigen::Vector3d& omega_ie_proj_n,
                               Eigen::Vector3d& omega_en_proj_n);
 };

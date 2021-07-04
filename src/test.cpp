@@ -58,7 +58,7 @@ int main(int argc, char const* argv[]) {
   cout << iNav::PI / 60 / 180 << endl;
   cout << 1 / (double)60.0 << endl;
 
-  cout << a.array()/(1+a.array()) << endl;
+  cout << d.array()*(1+d.array()) << endl;
 
   return 0;
 }
