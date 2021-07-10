@@ -21,6 +21,14 @@ string read_path = "/home/ubuntu/Dataset/";
 string imu_data_name = "IMU.bin";
 string ref_data_name = "Reference.bin";
 
+class RefData {
+public:
+  double timestamp;
+  Eigen::Vector3d pos;
+  Eigen::Vector3d vel;
+  Eigen::Vector3d att;
+};
+
 int main(int, char **) {
   // read files
   ifstream imu_data((read_path + imu_data_name).c_str(), ios::in | ios::binary);
@@ -30,9 +38,9 @@ int main(int, char **) {
 
   // parse data and save
   iNav::IMUData imu_frame;
-  iNav::NavData ref_frame;
+  RefData ref_frame;
   vector<iNav::IMUData> imu_vec;
-  vector<iNav::NavData> ref_vec;
+  vector<RefData> ref_vec;
 
   while (imu_data.read((char *)&imu_frame, sizeof(imu_frame)))
     imu_vec.push_back(imu_frame);
@@ -53,9 +61,7 @@ int main(int, char **) {
   for (int i = 0; i < imu_vec.size(); i++) {
     if (imu_vec[i].timestamp == initial_state.timestamp) {
       // INS init and update
-      ins_mechanization = new INS::INSMechanization(
-          initial_state.timestamp, initial_state.pos, initial_state.vel,
-          initial_state.att, imu_vec[i].gyro, imu_vec[i].acc);
+      ins_mechanization = new INS::INSMechanization(initial_state, imu_vec[i]);
       begin = i;
 
     } else if (imu_vec[i].timestamp > initial_state.timestamp &&

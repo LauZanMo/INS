@@ -58,7 +58,11 @@ int main(int argc, char const* argv[]) {
   cout << iNav::PI / 60 / 180 << endl;
   cout << 1 / (double)60.0 << endl;
 
-  cout << d.array()*(1+d.array()) << endl;
+  cout << d.array() * (1 + d.array()) << endl;
+  d.block(0, 0, 2, 1) *= iNav::DEGREE_2_RAD;
+  cout << d << endl;
+
+  cout << 2 * Eigen::Matrix3d::Identity() << endl;
 
   return 0;
 }

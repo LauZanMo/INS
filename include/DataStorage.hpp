@@ -13,8 +13,8 @@ public:
 
 class IMUParam {
 public:
-  double VRW;
   double ARW;
+  double VRW;
   double gyro_bias_std;
   double T_gyro_bias;
   double acc_bias_std;
@@ -36,8 +36,11 @@ class NavData {
 public:
   double timestamp;
   Eigen::Vector3d pos;
+  Eigen::Vector3d pos_std;
   Eigen::Vector3d vel;
+  Eigen::Vector3d vel_std;
   Eigen::Vector3d att;
+  Eigen::Vector3d att_std;
 };
 
 }  // namespace iNav

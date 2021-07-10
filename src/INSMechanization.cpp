@@ -17,34 +17,24 @@ using namespace std;
 namespace INS {
 
 /**
- * @brief construct a new INSMechanization::INSMechanization object
- *
- * @param init_time INS init time(s)
- * @param init_theta INS init euler angle(deg)
- * @param init_velocity INS init velocity(m/s)
- * @param init_phi INS init latitude(deg)
- * @param init_lamda INS init longitude(deg)
- * @param init_height INS init altitude(m)
- * @param init_delta_theta INS init gyro data
- * @param init_delta_velocity INS init acc data
+ * @brief Construct a new INSMechanization::INSMechanization object
+ * 
+ * @param init_nav_data 
+ * @param init_imu_data 
  */
-INSMechanization::INSMechanization(double init_time,
-                                   Eigen::Vector3d init_position,
-                                   Eigen::Vector3d init_velocity,
-                                   Eigen::Vector3d init_theta,
-                                   Eigen::Vector3d init_delta_theta,
-                                   Eigen::Vector3d init_delta_velocity)
-    : last_time_(init_time),
-      last_v_proj_n_(init_velocity),
-      before_last_v_proj_n_(init_velocity),
-      h_last_(init_position(2)),
-      last_delta_theta_(init_delta_theta),
-      last_delta_v_(init_delta_velocity) {
+INSMechanization::INSMechanization(const iNav::NavData& init_nav_data,
+                                   const iNav::IMUData& init_imu_data)
+    : last_time_(init_nav_data.timestamp),
+      last_v_proj_n_(init_nav_data.vel),
+      before_last_v_proj_n_(init_nav_data.vel),
+      h_last_(init_nav_data.pos(2)),
+      last_delta_theta_(init_imu_data.gyro),
+      last_delta_v_(init_imu_data.acc) {
   q_n_last_to_e_last_ = iNav::GeodeticVec2Quat(
-      Eigen::Vector2d(iNav::DEGREE_2_RAD * init_position(0),
-                      iNav::DEGREE_2_RAD * init_position(1)));
+      Eigen::Vector2d(iNav::DEGREE_2_RAD * init_nav_data.pos(0),
+                      iNav::DEGREE_2_RAD * init_nav_data.pos(1)));
 
-  q_b_last_to_n_last_ = iNav::EulerAngle2Quat(iNav::DEGREE_2_RAD * init_theta);
+  q_b_last_to_n_last_ = iNav::EulerAngle2Quat(iNav::DEGREE_2_RAD * init_nav_data.att);
 }
 
 /**

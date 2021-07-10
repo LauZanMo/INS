@@ -21,10 +21,8 @@ namespace INS {
 
 class INSMechanization {
 public:
-  INSMechanization(double init_time, Eigen::Vector3d init_position,
-                   Eigen::Vector3d init_velocity, Eigen::Vector3d init_theta,
-                   Eigen::Vector3d init_delta_theta,
-                   Eigen::Vector3d init_delta_velocity);
+  INSMechanization(const iNav::NavData& init_nav_data,
+                   const iNav::IMUData& init_imu_data);
 
   ~INSMechanization();
 

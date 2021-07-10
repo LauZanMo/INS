@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Eigen/Geometry>
+#include <iostream>
 
 #include "DataStorage.hpp"
 #include "INSMechanization.hpp"
@@ -17,14 +18,8 @@ using Matrix21d = Eigen::Matrix<double, 21, 21>;
 
 class GINS : INS::INSMechanization {
 public:
-  GINS(const double& init_time, const Eigen::Vector3d& init_position,
-       const Eigen::Vector3d& init_position_std,
-       const Eigen::Vector3d& init_velocity,
-       const Eigen::Vector3d& init_velocity_std,
-       const Eigen::Vector3d& init_theta, const Eigen::Vector3d& init_theta_std,
-       const IMUParam& init_imu_param, const Eigen::Vector3d& l_b,
-       const Eigen::Vector3d& init_delta_theta,
-       const Eigen::Vector3d& init_delta_velocity);
+  GINS(const iNav::NavData& init_nav_data, const IMUParam& init_imu_param,
+       const Eigen::Vector3d& l_b, const iNav::IMUData& init_imu_data);
   ~GINS();
 
   NavData Mechanization(IMUData data);
@@ -54,9 +49,10 @@ private:
                  const Eigen::Vector3d& theta_std, const IMUParam& param);
   qType Setq(const IMUParam& param);
   Matrix21d ComputeF();
-  GType ComputeG();
+  GType ComputeG(Eigen::Quaterniond q_b_to_n);
   HType ComputeHr();
   NavData CorrectNavDataAndIMUError(const NavData& data, ErrorType& error);
+  Eigen::Vector3d GetZr(GnssData gnss_data, NavData nav_data);
 };
 
 }  // namespace iNav

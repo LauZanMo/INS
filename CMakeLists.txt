@@ -30,6 +30,16 @@ target_link_libraries(${PROJECT_NAME}_test
   ${EIGEN3_LIBS}
 )
 
+add_executable(GINS_test
+  src/GINS_test.cpp
+  src/INSMechanization.cpp
+  src/GINS.cpp
+)
+
+target_link_libraries(GINS_test
+  ${EIGEN3_LIBS}
+)
+
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 include(CPack)
