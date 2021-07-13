@@ -7,11 +7,22 @@
 
 using namespace std;
 
+#define INTERRUPT_ON
+const double CONVERGENCE_TIME = 500;
+const double GNSS_TIME = 180;
+const double INTERRUPT_TIME = 60;
+const double MOTION_TIME = 456370;
+
 string read_path = "/home/ubuntu/Dataset/";
 string imu_data_name = "A15_imu.bin";
 string gnss_data_name = "GNSS_RTK.txt";
 string truth_name = "truth.nav";
+
+#ifdef INTERRUPT_ON
+string output_name = "result_interrupt.nav";
+#else
 string output_name = "result.nav";
+#endif
 
 class Truth {
 public:
@@ -103,31 +114,56 @@ int main(int argc, char const *argv[]) {
   iNav::GINS gnss_ins(initial_state, imu_param, l_b, imu_vec[0]);
 
   iNav::NavData nav_output;
+  bool interrupt_flag = false;
+  double record_time = initial_state.timestamp;
   int i = 1;
   for (int j = 1; j < imu_vec.size(); j++) {
     if (i < gnss_vec.size()) {
       if (imu_vec[j].timestamp < gnss_vec[i].timestamp) {
         nav_output = gnss_ins.Mechanization(imu_vec[j]);
         gnss_ins.Prediction();
-      } else {
+      } else if (!interrupt_flag) {
         nav_output = gnss_ins.GNSSUpdate(gnss_vec[i++], imu_vec[j]);
+      } else {
+        i++;
+        nav_output = gnss_ins.Mechanization(imu_vec[j]);
+        gnss_ins.Prediction();
       }
     } else {
       nav_output = gnss_ins.Mechanization(imu_vec[j]);
       gnss_ins.Prediction();
     }
 
+#ifdef INTERRUPT_ON
+    if (imu_vec[j].timestamp - initial_state.timestamp < CONVERGENCE_TIME) {
+      // wait for convergence
+    } else {
+      if (imu_vec[j].timestamp - record_time > GNSS_TIME && !interrupt_flag) {
+        interrupt_flag = true;
+        record_time = imu_vec[j].timestamp;
+      }
+
+      if (imu_vec[j].timestamp - record_time > INTERRUPT_TIME &&
+          interrupt_flag) {
+        interrupt_flag = false;
+        record_time = imu_vec[j].timestamp;
+      }
+    }
+#endif
+
     // nav files output
-    result_data.precision(12);
-    result_data << 2017 << " " << nav_output.timestamp << " ";
-    result_data << nav_output.pos[0] << " " << nav_output.pos[1] << " "
-                << nav_output.pos[2] << " ";
-    result_data << nav_output.vel[0] << " " << nav_output.vel[1] << " "
-                << nav_output.vel[2] << " ";
-    auto yaw =
-        nav_output.att[2] >= 0 ? nav_output.att[2] : nav_output.att[2] + 360;
-    result_data << nav_output.att[0] << " " << nav_output.att[1] << " " << yaw
-                << endl;
+    if (nav_output.timestamp > MOTION_TIME) {
+      result_data.precision(12);
+      result_data << 2017 << " " << nav_output.timestamp << " ";
+      result_data << nav_output.pos[0] << " " << nav_output.pos[1] << " "
+                  << nav_output.pos[2] << " ";
+      result_data << nav_output.vel[0] << " " << nav_output.vel[1] << " "
+                  << nav_output.vel[2] << " ";
+      auto yaw =
+          nav_output.att[2] >= 0 ? nav_output.att[2] : nav_output.att[2] + 360;
+      result_data << nav_output.att[0] << " " << nav_output.att[1] << " " << yaw
+                  << endl;
+    }
 
     // terminal output
     cout.precision(12);
