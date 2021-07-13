@@ -11,19 +11,9 @@ include_directories(
   ${EIGEN3_INCLUDE_DIR}
 )
 
-add_executable(${PROJECT_NAME}
-  src/main.cpp
-  src/INSMechanization.cpp
-)
-
-target_link_libraries(${PROJECT_NAME}
-  ${EIGEN3_LIBS}
-)
-
 add_executable(${PROJECT_NAME}_test
-  src/test.cpp
+  src/mechanization_test.cpp
   src/INSMechanization.cpp
-  src/GINS.cpp
 )
 
 target_link_libraries(${PROJECT_NAME}_test

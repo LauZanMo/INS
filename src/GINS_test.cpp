@@ -11,6 +11,7 @@ string read_path = "/home/ubuntu/Dataset/";
 string imu_data_name = "A15_imu.bin";
 string gnss_data_name = "GNSS_RTK.txt";
 string truth_name = "truth.nav";
+string output_name = "result.nav";
 
 class Truth {
 public:
@@ -26,8 +27,9 @@ int main(int argc, char const *argv[]) {
   ifstream imu_data((read_path + imu_data_name).c_str(), ios::in | ios::binary);
   ifstream gnss_data((read_path + gnss_data_name).c_str());
   ifstream truth_data((read_path + truth_name).c_str());
+  ofstream result_data((read_path + output_name).c_str(), ios::trunc);
 
-  if (!imu_data || !gnss_data || !truth_data) exit(-1);
+  if (!imu_data || !gnss_data || !truth_data || !result_data) exit(-1);
 
   // parse data and save
   iNav::IMUData imu_frame;
@@ -103,16 +105,40 @@ int main(int argc, char const *argv[]) {
   iNav::NavData nav_output;
   int i = 1;
   for (int j = 1; j < imu_vec.size(); j++) {
-    if (imu_vec[j].timestamp < gnss_vec[i].timestamp) {
+    if (i < gnss_vec.size()) {
+      if (imu_vec[j].timestamp < gnss_vec[i].timestamp) {
+        nav_output = gnss_ins.Mechanization(imu_vec[j]);
+        gnss_ins.Prediction();
+      } else {
+        nav_output = gnss_ins.GNSSUpdate(gnss_vec[i++], imu_vec[j]);
+      }
+    } else {
       nav_output = gnss_ins.Mechanization(imu_vec[j]);
       gnss_ins.Prediction();
-    } else {
-      nav_output = gnss_ins.GNSSUpdate(gnss_vec[i++], imu_vec[j]);
     }
 
+    // nav files output
+    result_data.precision(12);
+    result_data << 2017 << " " << nav_output.timestamp << " ";
+    result_data << nav_output.pos[0] << " " << nav_output.pos[1] << " "
+                << nav_output.pos[2] << " ";
+    result_data << nav_output.vel[0] << " " << nav_output.vel[1] << " "
+                << nav_output.vel[2] << " ";
+    auto yaw =
+        nav_output.att[2] >= 0 ? nav_output.att[2] : nav_output.att[2] + 360;
+    result_data << nav_output.att[0] << " " << nav_output.att[1] << " " << yaw
+                << endl;
+
+    // terminal output
     cout.precision(12);
+    cout << "---" << endl;
     cout << "my position: " << endl;
+    cout << nav_output.timestamp << endl;
     cout << nav_output.pos.transpose() << endl;
+
+    cout << "truth: " << endl;
+    cout << truth_vec[j].second << endl;
+    cout << truth_vec[j].pos.transpose() << endl;
   }
 
   return 0;

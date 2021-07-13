@@ -72,23 +72,25 @@ int main(int, char **) {
           ins_mechanization->MechanizationUpdate();
 
       cout.precision(12);
-      cout << "my position: " << endl;
-      cout << mechanization_output.pos << endl;
+      cout << "---" << endl;
 
-      cout << "ref position: " << endl;
-      cout << ref_vec[i - begin - 1].pos << endl;
+      // cout << "my position: " << endl;
+      // cout << mechanization_output.pos.transpose() << endl;
+
+      // cout << "ref position: " << endl;
+      // cout << ref_vec[i - begin - 1].pos.transpose() << endl;
 
       // cout << "my velocity: " << endl;
-      // cout << mechanization_output.vel << endl;
+      // cout << mechanization_output.vel.transpose() << endl;
 
       // cout << "ref velocity: " << endl;
-      // cout << ref_vec[i - begin - 1].vel << endl;
+      // cout << ref_vec[i - begin - 1].vel.transpose() << endl;
 
-      // cout << "my attitude: " << endl;
-      // cout << mechanization_output.att << endl;
+      cout << "my attitude: " << endl;
+      cout << mechanization_output.att.transpose() << endl;
 
-      // cout << "ref attitude: " << endl;
-      // cout << ref_vec[i - begin-1].att << endl;
+      cout << "ref attitude: " << endl;
+      cout << ref_vec[i - begin-1].att.transpose() << endl;
     }
   }
 }

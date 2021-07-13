@@ -10,11 +10,11 @@ GINS::GINS(const iNav::NavData& init_nav_data, const IMUParam& init_imu_param,
       acc_bias_(0, 0, 0),
       gyro_scalar_(0, 0, 0),
       acc_scalar_(0, 0, 0) {
-  last_delta_x_ = ErrorType::Zero();
+  delta_x_ = ErrorType::Zero();
 
-  IMU_param_.VRW =
-      init_imu_param.VRW * DEGREE_PER_SQRT_HOUR_2_RAD_PER_SQRT_SECOND;
-  IMU_param_.ARW = init_imu_param.ARW *
+  IMU_param_.ARW =
+      init_imu_param.ARW * DEGREE_PER_SQRT_HOUR_2_RAD_PER_SQRT_SECOND;
+  IMU_param_.VRW = init_imu_param.VRW *
                    METER_PER_SECOND_SQRT_HOUR_2_METER_PER_SECOND_SQRT_SECOND;
 
   IMU_param_.gyro_bias_std =
@@ -29,7 +29,7 @@ GINS::GINS(const iNav::NavData& init_nav_data, const IMUParam& init_imu_param,
   IMU_param_.T_gyro_scalar = init_imu_param.T_gyro_scalar * HOUR_2_SECOND;
   IMU_param_.T_acc_scalar = init_imu_param.T_acc_scalar * HOUR_2_SECOND;
 
-  last_P_ = SetP(init_nav_data.pos_std, init_nav_data.vel_std,
+  P_ = SetP(init_nav_data.pos_std, init_nav_data.vel_std,
                  init_nav_data.att_std, IMU_param_);
 
   q_ = Setq(IMU_param_);
@@ -61,13 +61,11 @@ void GINS::Prediction() {
                 delta_time_;
 
   // prediction
-  delta_x_ = Phi * last_delta_x_;
-  P_ = Phi * last_P_ * Phi.transpose() + Q;
+  delta_x_ = Phi * delta_x_;
+  P_ = Phi * P_ * Phi.transpose() + Q;
 
   // data record
-  last_delta_x_ = delta_x_;
   last_G_ = G_;
-  last_P_ = P_;
 }
 
 NavData GINS::GNSSUpdate(GnssData gnss_data, IMUData imu_data) {
@@ -82,8 +80,8 @@ NavData GINS::GNSSUpdate(GnssData gnss_data, IMUData imu_data) {
     HType H_r = ComputeHr();
     KType K = P_ * H_r.transpose() * (H_r * P_ * H_r.transpose() + R).inverse();
     Eigen::Vector3d z_r = GetZr(gnss_data, nav_data);
-    delta_x_ = last_delta_x_ + K * (z_r - H_r * last_delta_x_);
-    P_ = (Matrix21d::Identity() - K * H_r) * last_P_ *
+    delta_x_ = delta_x_ + K * (z_r - H_r * delta_x_);
+    P_ = (Matrix21d::Identity() - K * H_r) * P_ *
              (Matrix21d::Identity() - K * H_r).transpose() +
          K * R * K.transpose();
 
@@ -111,8 +109,8 @@ NavData GINS::GNSSUpdate(GnssData gnss_data, IMUData imu_data) {
     HType H_r = ComputeHr();
     KType K = P_ * H_r.transpose() * (H_r * P_ * H_r.transpose() + R).inverse();
     Eigen::Vector3d z_r = GetZr(gnss_data, nav_data);
-    delta_x_ = last_delta_x_ + K * (z_r - H_r * last_delta_x_);
-    P_ = (Matrix21d::Identity() - K * H_r) * last_P_ *
+    delta_x_ = delta_x_ + K * (z_r - H_r * delta_x_);
+    P_ = (Matrix21d::Identity() - K * H_r) * P_ *
              (Matrix21d::Identity() - K * H_r).transpose() +
          K * R * K.transpose();
 
@@ -121,10 +119,6 @@ NavData GINS::GNSSUpdate(GnssData gnss_data, IMUData imu_data) {
     correct_nav_data = Mechanization(imu_virtual);
     Prediction();
   }
-
-  // data record
-  last_delta_x_ = delta_x_;
-  last_P_ = P_;
 
   return correct_nav_data;
 }
@@ -158,8 +152,8 @@ Matrix21d GINS::SetP(const Eigen::Vector3d& position_std,
 qType GINS::Setq(const IMUParam& param) {
   qType mat = qType::Zero();
 
-  mat.block(0, 0, 3, 3) = pow(param.ARW, 2) * Eigen::Matrix3d::Identity();
-  mat.block(3, 3, 3, 3) = pow(param.VRW, 2) * Eigen::Matrix3d::Identity();
+  mat.block(0, 0, 3, 3) = pow(param.VRW, 2) * Eigen::Matrix3d::Identity();
+  mat.block(3, 3, 3, 3) = pow(param.ARW, 2) * Eigen::Matrix3d::Identity();
 
   mat.block(6, 6, 3, 3) = 2 * pow(param.gyro_bias_std, 2) / param.T_gyro_bias *
                           Eigen::Matrix3d::Identity();
@@ -312,7 +306,7 @@ NavData GINS::CorrectNavDataAndIMUError(const NavData& data, ErrorType& error) {
   Eigen::Matrix3d C_b_to_p =
       EulerAngle2Quat(data.att * DEGREE_2_RAD).toRotationMatrix();
   Eigen::Matrix3d C_t_to_p =
-      Eigen::Matrix3d::Identity() - GetSkewSymmetricMat(rotation_vec);
+    Eigen::Matrix3d::Identity() - GetSkewSymmetricMat(rotation_vec);
   q_b_to_n_ = C_t_to_p.transpose() * C_b_to_p;
   correct_data.att =
       RAD_2_DEGREE * DCM2EulerAngle(q_b_to_n_.toRotationMatrix());

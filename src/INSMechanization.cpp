@@ -18,9 +18,9 @@ namespace INS {
 
 /**
  * @brief Construct a new INSMechanization::INSMechanization object
- * 
- * @param init_nav_data 
- * @param init_imu_data 
+ *
+ * @param init_nav_data
+ * @param init_imu_data
  */
 INSMechanization::INSMechanization(const iNav::NavData& init_nav_data,
                                    const iNav::IMUData& init_imu_data)
@@ -34,7 +34,8 @@ INSMechanization::INSMechanization(const iNav::NavData& init_nav_data,
       Eigen::Vector2d(iNav::DEGREE_2_RAD * init_nav_data.pos(0),
                       iNav::DEGREE_2_RAD * init_nav_data.pos(1)));
 
-  q_b_last_to_n_last_ = iNav::EulerAngle2Quat(iNav::DEGREE_2_RAD * init_nav_data.att);
+  q_b_last_to_n_last_ =
+      iNav::EulerAngle2Quat(iNav::DEGREE_2_RAD * init_nav_data.att);
 }
 
 /**
@@ -45,9 +46,7 @@ INSMechanization::~INSMechanization() {}
 /**
  * @brief sensor update
  *
- * @param time sensor update time
- * @param delta_theta gyro data
- * @param delta_v acc data
+ * @param data imu data
  */
 void INSMechanization::SensorUpdate(iNav::IMUData data) {
   time_ = data.timestamp;
@@ -97,7 +96,7 @@ void INSMechanization::VelocityUpdate() {
   Eigen::Quaterniond q_e_last_to_e_midway(
       iNav::RotationVec2AngleAxis(-xi_midway));
 
-  Eigen::Quaterniond q_n_midway_to_e_midway_ =
+  q_n_midway_to_e_midway_ =
       q_e_last_to_e_midway * q_n_last_to_e_last_ * q_n_midway_to_n_last;
 
   h_midway_ = h_last_ - last_v_proj_n_(2) * 0.5 * delta_time_;

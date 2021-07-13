@@ -29,10 +29,10 @@ public:
 private:
   Eigen::Vector3d gyro_bias_, acc_bias_, gyro_scalar_, acc_scalar_;
   Eigen::Vector3d l_b_;
-  ErrorType delta_x_, last_delta_x_;
+  ErrorType delta_x_;
   qType q_;
   GType G_, last_G_;
-  Matrix21d P_, last_P_;
+  Matrix21d P_;
   IMUParam IMU_param_;
 
   inline Eigen::Vector3d CorrectGyroError(const Eigen::Vector3d& gyro_raw) {
