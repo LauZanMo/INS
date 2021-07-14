@@ -1,4 +1,16 @@
+/**
+ * @file GINS.cpp
+ * @author LauZanMo (LauZanMo@whu.edu.cn)
+ * @brief GINS class
+ * @version 1.0
+ * @date 2021-07-14
+ *
+ * @copyright Copyright (c) 2021 WHU-Drones
+ *
+ */
 #include "GINS.hpp"
+
+#define POSE_INTERPOLATION
 
 namespace iNav {
 
@@ -29,8 +41,8 @@ GINS::GINS(const iNav::NavData& init_nav_data, const IMUParam& init_imu_param,
   IMU_param_.T_gyro_scalar = init_imu_param.T_gyro_scalar * HOUR_2_SECOND;
   IMU_param_.T_acc_scalar = init_imu_param.T_acc_scalar * HOUR_2_SECOND;
 
-  P_ = SetP(init_nav_data.pos_std, init_nav_data.vel_std,
-                 init_nav_data.att_std, IMU_param_);
+  P_ = SetP(init_nav_data.pos_std, init_nav_data.vel_std, init_nav_data.att_std,
+            IMU_param_);
 
   q_ = Setq(IMU_param_);
 
@@ -39,54 +51,59 @@ GINS::GINS(const iNav::NavData& init_nav_data, const IMUParam& init_imu_param,
 
 GINS::~GINS() {}
 
-NavData GINS::Mechanization(IMUData data) {
+NavData GINS::Mechanization(IMUData data, bool record_data) {
   IMUData correct_data;
   correct_data.timestamp = data.timestamp;
   correct_data.gyro = CorrectGyroError(data.gyro);
   correct_data.acc = CorrectAccError(data.acc);
 
   SensorUpdate(correct_data);
-  NavData output = MechanizationUpdate();
+  NavData output = MechanizationUpdate(record_data);
 
   return output;
 }
 
-void GINS::Prediction() {
+void GINS::Prediction(bool record_data) {
   Matrix21d F = ComputeF();
   G_ = ComputeG(q_b_to_n_);
-  Matrix21d Phi = Matrix21d::Identity() + F * delta_time_;
-  Matrix21d Q = 0.5 *
-                (Phi * last_G_ * q_ * last_G_.transpose() * Phi.transpose() +
-                 G_ * q_ * G_.transpose()) *
-                delta_time_;
+  Phi_ = Matrix21d::Identity() + F * delta_time_;
+  Q_ = 0.5 *
+       (Phi_ * last_G_ * q_ * last_G_.transpose() * Phi_.transpose() +
+        G_ * q_ * G_.transpose()) *
+       delta_time_;
 
   // prediction
-  delta_x_ = Phi * delta_x_;
-  P_ = Phi * P_ * Phi.transpose() + Q;
+  delta_x_ = Phi_ * delta_x_;
+  P_ = Phi_ * P_ * Phi_.transpose() + Q_;
 
   // data record
-  last_G_ = G_;
+  if (record_data) last_G_ = G_;
 }
 
 NavData GINS::GNSSUpdate(GnssData gnss_data, IMUData imu_data) {
   NavData correct_nav_data;
 
   if (gnss_data.timestamp == imu_data.timestamp) {
+    // mechanization and prediction
     NavData nav_data = Mechanization(imu_data);
     Prediction();
 
+    // gnss update
     Eigen::Matrix3d R =
         Eigen::Vector3d(gnss_data.pos_std.array().pow(2)).asDiagonal();
     HType H_r = ComputeHr();
     KType K = P_ * H_r.transpose() * (H_r * P_ * H_r.transpose() + R).inverse();
-    Eigen::Vector3d z_r = GetZr(gnss_data, nav_data);
+    Eigen::Vector3d z_r = ComputeZr(gnss_data, nav_data);
     delta_x_ = delta_x_ + K * (z_r - H_r * delta_x_);
     P_ = (Matrix21d::Identity() - K * H_r) * P_ *
              (Matrix21d::Identity() - K * H_r).transpose() +
          K * R * K.transpose();
 
+    // correct nav data and IMU error
     correct_nav_data = CorrectNavDataAndIMUError(nav_data, delta_x_);
   } else if (gnss_data.timestamp < imu_data.timestamp) {
+#ifndef POSE_INTERPOLATION
+    // interpolation
     double ratio1 =
         (gnss_data.timestamp - last_time_) / (imu_data.timestamp - last_time_);
     double ratio2 = (imu_data.timestamp - gnss_data.timestamp) /
@@ -101,23 +118,66 @@ NavData GINS::GNSSUpdate(GnssData gnss_data, IMUData imu_data) {
     imu_virtual.gyro = ratio2 * imu_data.gyro;
     imu_virtual.acc = ratio2 * imu_data.acc;
 
+    // mechanization and prediction
     NavData nav_data = Mechanization(imu_gps_virtual);
     Prediction();
 
+    // gnss update
     Eigen::Matrix3d R =
         Eigen::Vector3d(gnss_data.pos_std.array().pow(2)).asDiagonal();
     HType H_r = ComputeHr();
     KType K = P_ * H_r.transpose() * (H_r * P_ * H_r.transpose() + R).inverse();
-    Eigen::Vector3d z_r = GetZr(gnss_data, nav_data);
+    Eigen::Vector3d z_r = ComputeZr(gnss_data, nav_data);
     delta_x_ = delta_x_ + K * (z_r - H_r * delta_x_);
     P_ = (Matrix21d::Identity() - K * H_r) * P_ *
              (Matrix21d::Identity() - K * H_r).transpose() +
          K * R * K.transpose();
 
+    // correct nav data and IMU error
     CorrectNavDataAndIMUError(nav_data, delta_x_);
 
+    // mechanization and prediction
     correct_nav_data = Mechanization(imu_virtual);
     Prediction();
+#else
+    double ratio =
+        (gnss_data.timestamp - last_time_) / (imu_data.timestamp - last_time_);
+
+    // mechanization
+    NavData last_nav_data = GetNavState();
+    NavData nav_data = Mechanization(imu_data, false);
+
+    // interpolation
+    NavData gnss_interpolation_data = NavDataInterpolation(
+        last_nav_data, nav_data, ratio, gnss_data.timestamp);
+
+    // prediction
+    SetNavState(gnss_interpolation_data);
+    Prediction(false);
+
+    // gnss update
+    Eigen::Matrix3d R =
+        Eigen::Vector3d(gnss_data.pos_std.array().pow(2)).asDiagonal();
+    HType H_r = ComputeHr();
+    KType K = P_ * H_r.transpose() * (H_r * P_ * H_r.transpose() + R).inverse();
+    Eigen::Vector3d z_r = ComputeZr(gnss_data, gnss_interpolation_data);
+    delta_x_ = delta_x_ + K * (z_r - H_r * delta_x_);
+    P_ = (Matrix21d::Identity() - K * H_r) * P_ *
+             (Matrix21d::Identity() - K * H_r).transpose() +
+         K * R * K.transpose();
+
+    // inverse
+    delta_x_ = Phi_.inverse() * delta_x_;
+    P_ = Phi_.inverse() * (P_ - Q_) * Phi_.transpose().inverse();
+
+    // correct nav data and IMU error
+    SetNavState(last_nav_data);
+    CorrectNavDataAndIMUError(last_nav_data, delta_x_);
+
+    // mechanization and prediction
+    correct_nav_data = Mechanization(imu_data);
+    Prediction();
+#endif
   }
 
   return correct_nav_data;
@@ -264,7 +324,7 @@ Matrix21d GINS::ComputeF() {
   return F;
 }
 
-GType GINS::ComputeG(Eigen::Quaterniond q_b_to_n) {
+GType GINS::ComputeG(const Eigen::Quaterniond& q_b_to_n) {
   GType G = GType::Zero();
   G.block(3, 0, 3, 3) = q_b_to_n.toRotationMatrix();
   G.block(6, 3, 3, 3) = q_b_to_n.toRotationMatrix();
@@ -283,7 +343,34 @@ HType GINS::ComputeHr() {
   return H_r;
 }
 
-Eigen::Vector3d GINS::GetZr(GnssData gnss_data, NavData nav_data) {
+NavData GINS::NavDataInterpolation(const NavData& last_nav_data,
+                                   const NavData& nav_data, const double& ratio,
+                                   const double& timestamp) {
+  NavData output_data;
+  output_data.timestamp = timestamp;
+  output_data.pos =
+      last_nav_data.pos + ratio * (last_nav_data.pos - nav_data.pos);
+  output_data.vel =
+      last_nav_data.vel + ratio * (last_nav_data.vel - nav_data.vel);
+
+  Eigen::Quaterniond last_q_b_to_n =
+      EulerAngle2Quat(DEGREE_2_RAD * last_nav_data.att);
+  Eigen::Quaterniond q_b_to_n =
+      EulerAngle2Quat(DEGREE_2_RAD * last_nav_data.att);
+
+  Eigen::Quaterniond q_delta_theta = last_q_b_to_n.inverse() * q_b_to_n;
+  Eigen::AngleAxisd vec(q_delta_theta);
+  vec.angle() = ratio * vec.angle();
+  Eigen::Quaterniond q_ratio_delta_theta(vec);
+  output_data.att =
+      RAD_2_DEGREE *
+      DCM2EulerAngle((last_q_b_to_n * q_ratio_delta_theta).toRotationMatrix());
+
+  return output_data;
+}
+
+Eigen::Vector3d GINS::ComputeZr(const GnssData& gnss_data,
+                                const NavData& nav_data) {
   Eigen::Vector2d geodetic_vec = Quat2GeodeticVec(q_n_to_e_);
   double lat = geodetic_vec(0);
   Eigen::Vector2d R = ComputeRmRn(lat);
@@ -306,7 +393,7 @@ NavData GINS::CorrectNavDataAndIMUError(const NavData& data, ErrorType& error) {
   Eigen::Matrix3d C_b_to_p =
       EulerAngle2Quat(data.att * DEGREE_2_RAD).toRotationMatrix();
   Eigen::Matrix3d C_t_to_p =
-    Eigen::Matrix3d::Identity() - GetSkewSymmetricMat(rotation_vec);
+      Eigen::Matrix3d::Identity() - GetSkewSymmetricMat(rotation_vec);
   q_b_to_n_ = C_t_to_p.transpose() * C_b_to_p;
   correct_data.att =
       RAD_2_DEGREE * DCM2EulerAngle(q_b_to_n_.toRotationMatrix());

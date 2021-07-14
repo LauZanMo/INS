@@ -1,3 +1,13 @@
+/**
+ * @file GINS.hpp
+ * @author LauZanMo (LauZanMo@whu.edu.cn)
+ * @brief GINS class
+ * @version 1.0
+ * @date 2021-07-14
+ *
+ * @copyright Copyright (c) 2021 WHU-Drones
+ *
+ */
 #pragma once
 
 #include <Eigen/Geometry>
@@ -22,8 +32,8 @@ public:
        const Eigen::Vector3d& l_b, const iNav::IMUData& init_imu_data);
   ~GINS();
 
-  NavData Mechanization(IMUData data);
-  void Prediction();
+  NavData Mechanization(IMUData data, bool record_data = true);
+  void Prediction(bool record_data = true);
   NavData GNSSUpdate(GnssData gnss_data, IMUData imu_data);
 
 private:
@@ -32,7 +42,7 @@ private:
   ErrorType delta_x_;
   qType q_;
   GType G_, last_G_;
-  Matrix21d P_;
+  Matrix21d P_, Phi_, Q_;
   IMUParam IMU_param_;
 
   inline Eigen::Vector3d CorrectGyroError(const Eigen::Vector3d& gyro_raw) {
@@ -49,10 +59,13 @@ private:
                  const Eigen::Vector3d& theta_std, const IMUParam& param);
   qType Setq(const IMUParam& param);
   Matrix21d ComputeF();
-  GType ComputeG(Eigen::Quaterniond q_b_to_n);
+  GType ComputeG(const Eigen::Quaterniond& q_b_to_n);
   HType ComputeHr();
+  NavData NavDataInterpolation(const NavData& last_nav_data,
+                               const NavData& nav_data, const double& ratio,
+                               const double& timestamp);
   NavData CorrectNavDataAndIMUError(const NavData& data, ErrorType& error);
-  Eigen::Vector3d GetZr(GnssData gnss_data, NavData nav_data);
+  Eigen::Vector3d ComputeZr(const GnssData& gnss_data, const NavData& nav_data);
 };
 
 }  // namespace iNav

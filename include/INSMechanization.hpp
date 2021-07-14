@@ -26,8 +26,8 @@ public:
 
   ~INSMechanization();
 
-  void SensorUpdate(iNav::IMUData data);
-  iNav::NavData MechanizationUpdate();
+  void SensorUpdate(const iNav::IMUData& data);
+  iNav::NavData MechanizationUpdate(bool record_data = true);
 
 protected:
   // IMU output
@@ -48,6 +48,9 @@ protected:
   Eigen::Quaterniond q_n_midway_to_e_midway_;
   double h_midway_;
   Eigen::Vector3d g_proj_n_;
+
+  iNav::NavData GetNavState();
+  void SetNavState(const iNav::NavData& data);
 
 private:
   // member function

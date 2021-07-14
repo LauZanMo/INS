@@ -31,8 +31,7 @@ INSMechanization::INSMechanization(const iNav::NavData& init_nav_data,
       last_delta_theta_(init_imu_data.gyro),
       last_delta_v_(init_imu_data.acc) {
   q_n_last_to_e_last_ = iNav::GeodeticVec2Quat(
-      Eigen::Vector2d(iNav::DEGREE_2_RAD * init_nav_data.pos(0),
-                      iNav::DEGREE_2_RAD * init_nav_data.pos(1)));
+      iNav::DEGREE_2_RAD * init_nav_data.pos.block(0, 0, 2, 1));
 
   q_b_last_to_n_last_ =
       iNav::EulerAngle2Quat(iNav::DEGREE_2_RAD * init_nav_data.att);
@@ -48,7 +47,7 @@ INSMechanization::~INSMechanization() {}
  *
  * @param data imu data
  */
-void INSMechanization::SensorUpdate(iNav::IMUData data) {
+void INSMechanization::SensorUpdate(const iNav::IMUData& data) {
   time_ = data.timestamp;
   delta_time_ = data.timestamp - last_time_;
 
@@ -57,32 +56,66 @@ void INSMechanization::SensorUpdate(iNav::IMUData data) {
 }
 
 /**
- * @brief INS update
+ * @brief mechanization update
  *
- * @return iNav::NavData: return INS update result
+ * @param record_data determine whether to record data or not
+ * @return iNav::NavData
  */
-iNav::NavData INSMechanization::MechanizationUpdate() {
+iNav::NavData INSMechanization::MechanizationUpdate(bool record_data) {
   VelocityUpdate();
   PositionUpdate();
   AttitudeUpdate();
 
-  iNav::NavData mechanization_output;
-  mechanization_output.timestamp = time_;
+  iNav::NavData mechanization_output = GetNavState();
 
-  mechanization_output.att =
-      iNav::RAD_2_DEGREE * iNav::DCM2EulerAngle(q_b_to_n_.toRotationMatrix());
-
-  mechanization_output.vel = v_proj_n_;
-
-  Eigen::Vector2d geodetic_vec =
-      iNav::RAD_2_DEGREE * iNav::Quat2GeodeticVec(q_n_to_e_);
-  mechanization_output.pos << geodetic_vec, h_;
-
-  DataRecord();
+  if (record_data) DataRecord();
 
   return mechanization_output;
 }
 
+/**
+ * @brief get nav state
+ *
+ * @return iNav::NavData: nav state
+ */
+iNav::NavData INSMechanization::GetNavState() {
+  iNav::NavData nav_state;
+  nav_state.timestamp = time_;
+
+  nav_state.att =
+      iNav::RAD_2_DEGREE * iNav::DCM2EulerAngle(q_b_to_n_.toRotationMatrix());
+
+  nav_state.vel = v_proj_n_;
+
+  Eigen::Vector2d geodetic_vec =
+      iNav::RAD_2_DEGREE * iNav::Quat2GeodeticVec(q_n_to_e_);
+  nav_state.pos << geodetic_vec, h_;
+
+  return nav_state;
+}
+
+/**
+ * @brief set nav state and time stamp
+ *
+ * @param data nav state
+ */
+void INSMechanization::SetNavState(const iNav::NavData& data) {
+  time_ = data.timestamp;
+  delta_time_ = data.timestamp - last_time_;
+
+  q_b_to_n_ = iNav::EulerAngle2Quat(iNav::DEGREE_2_RAD * data.att);
+
+  v_proj_n_ = data.vel;
+
+  q_n_to_e_ =
+      iNav::GeodeticVec2Quat(iNav::DEGREE_2_RAD * data.pos.block(0, 0, 2, 1));
+
+  h_ = data.pos(2);
+}
+
+/**
+ * @brief velocity update
+ */
 void INSMechanization::VelocityUpdate() {
   // update midway data
   v_midway_proj_n_ = 1.5 * last_v_proj_n_ - 0.5 * before_last_v_proj_n_;
@@ -130,6 +163,9 @@ void INSMechanization::VelocityUpdate() {
   v_proj_n_ = last_v_proj_n_ + delta_v_f_proj_n + delta_v_g_and_coriolis_proj_n;
 }
 
+/**
+ * @brief position update
+ */
 void INSMechanization::PositionUpdate() {
   // update midway data
   v_midway_proj_n_ = 0.5 * (last_v_proj_n_ + v_proj_n_);
@@ -162,6 +198,9 @@ void INSMechanization::PositionUpdate() {
   q_n_to_e_.normalize();
 }
 
+/**
+ * @brief attitude update
+ */
 void INSMechanization::AttitudeUpdate() {
   // update midway data
   Eigen::Quaterniond q_delta_theta = q_n_last_to_e_last_.inverse() * q_n_to_e_;
@@ -186,6 +225,9 @@ void INSMechanization::AttitudeUpdate() {
   q_b_to_n_.normalize();
 }
 
+/**
+ * @brief record data
+ */
 void INSMechanization::DataRecord() {
   // time record
   last_time_ = time_;
@@ -202,6 +244,15 @@ void INSMechanization::DataRecord() {
   q_b_last_to_n_last_ = q_b_to_n_;
 }
 
+/**
+ * @brief compute zeta
+ *
+ * @param v_proj_n velocity projected on n-frame
+ * @param q_n_to_e position
+ * @param h height
+ * @param delta_t delta time
+ * @return Eigen::Vector3d: zeta value
+ */
 Eigen::Vector3d INSMechanization::ComputeZeta(
     const Eigen::Vector3d& v_proj_n, const Eigen::Quaterniond& q_n_to_e,
     const double& h, const double& delta_t) {
@@ -216,6 +267,19 @@ Eigen::Vector3d INSMechanization::ComputeZeta(
   return (omega_ie_proj_n + omega_en_proj_n) * delta_t;
 }
 
+/**
+ * @brief compute zeta
+ *
+ * @param v_proj_n velocity projected on n-frame
+ * @param q_n_to_e position
+ * @param h height
+ * @param delta_t delta time
+ * @param omega_ie_proj_n angular rate from e-frame to i-frame projected on
+ * n-frame (refer this variant and set value)
+ * @param omega_en_proj_n angular rate from e-frame to n-frame projected on
+ * n-frame (refer this variant and set value)
+ * @return Eigen::Vector3d: zeta value
+ */
 Eigen::Vector3d INSMechanization::ComputeZeta(
     const Eigen::Vector3d& v_proj_n, const Eigen::Quaterniond& q_n_to_e,
     const double& h, const double& delta_t, Eigen::Vector3d& omega_ie_proj_n,
