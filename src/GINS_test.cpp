@@ -7,6 +7,7 @@
 
 using namespace std;
 
+// comment to turn off gnss interrupt
 #define INTERRUPT_ON
 const double CONVERGENCE_TIME = 500;
 const double GNSS_TIME = 180;

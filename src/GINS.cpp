@@ -10,6 +10,7 @@
  */
 #include "GINS.hpp"
 
+// comment to use raw data interpolation
 #define POSE_INTERPOLATION
 
 namespace iNav {
