@@ -97,20 +97,44 @@ iNav::NavData INSMechanization::GetNavState() {
 /**
  * @brief set nav state and time stamp
  *
- * @param data nav state
+ * @param nav_data nav state
  */
-void INSMechanization::SetNavState(const iNav::NavData& data) {
-  time_ = data.timestamp;
-  delta_time_ = data.timestamp - last_time_;
+void INSMechanization::SetNavState(const iNav::NavData& nav_data) {
+  time_ = nav_data.timestamp;
+  delta_time_ = nav_data.timestamp - last_time_;
 
-  q_b_to_n_ = iNav::EulerAngle2Quat(iNav::DEGREE_2_RAD * data.att);
+  q_b_to_n_ = iNav::EulerAngle2Quat(iNav::DEGREE_2_RAD * nav_data.att);
 
-  v_proj_n_ = data.vel;
+  v_proj_n_ = nav_data.vel;
 
-  q_n_to_e_ =
-      iNav::GeodeticVec2Quat(iNav::DEGREE_2_RAD * data.pos.block(0, 0, 2, 1));
+  q_n_to_e_ = iNav::GeodeticVec2Quat(iNav::DEGREE_2_RAD *
+                                     nav_data.pos.block(0, 0, 2, 1));
 
-  h_ = data.pos(2);
+  h_ = nav_data.pos(2);
+}
+
+/**
+ * @brief set nav state,imu data and time stamp
+ * 
+ * @param nav_data nav state
+ * @param imu_data imu data
+ */
+void INSMechanization::SetNavState(const iNav::NavData& nav_data,
+                                   const iNav::IMUData imu_data) {
+  time_ = nav_data.timestamp;
+  delta_time_ = nav_data.timestamp - last_time_;
+
+  delta_v_ = imu_data.acc;
+  delta_theta_ = imu_data.gyro;
+
+  q_b_to_n_ = iNav::EulerAngle2Quat(iNav::DEGREE_2_RAD * nav_data.att);
+
+  v_proj_n_ = nav_data.vel;
+
+  q_n_to_e_ = iNav::GeodeticVec2Quat(iNav::DEGREE_2_RAD *
+                                     nav_data.pos.block(0, 0, 2, 1));
+
+  h_ = nav_data.pos(2);
 }
 
 /**
