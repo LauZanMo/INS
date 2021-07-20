@@ -149,11 +149,15 @@ NavData GINS::GNSSUpdate(GnssData gnss_data, IMUData imu_data) {
     NavData nav_data = Mechanization(imu_data, false);
 
     // interpolation
-    NavData gnss_interpolation_data = NavDataInterpolation(
+    NavData nav_interpolation_data = NavDataInterpolation(
         last_nav_data, nav_data, ratio, gnss_data.timestamp);
+    IMUData imu_interpolation_data = imu_data;
+    imu_interpolation_data.timestamp = gnss_data.timestamp;
+    imu_interpolation_data.acc *= ratio;
+    imu_interpolation_data.gyro *= ratio;
 
     // prediction
-    SetNavState(gnss_interpolation_data);
+    SetNavState(nav_interpolation_data, imu_interpolation_data);
     Prediction(false);
 
     // gnss update
@@ -161,7 +165,7 @@ NavData GINS::GNSSUpdate(GnssData gnss_data, IMUData imu_data) {
         Eigen::Vector3d(gnss_data.pos_std.array().pow(2)).asDiagonal();
     HType H_r = ComputeHr();
     KType K = P_ * H_r.transpose() * (H_r * P_ * H_r.transpose() + R).inverse();
-    Eigen::Vector3d z_r = ComputeZr(gnss_data, gnss_interpolation_data);
+    Eigen::Vector3d z_r = ComputeZr(gnss_data, nav_interpolation_data);
     delta_x_ = delta_x_ + K * (z_r - H_r * delta_x_);
     P_ = (Matrix21d::Identity() - K * H_r) * P_ *
              (Matrix21d::Identity() - K * H_r).transpose() +
@@ -196,7 +200,7 @@ Matrix21d GINS::SetP(const Eigen::Vector3d& position_std,
       Eigen::Vector3d(velocity_std.array().pow(2)).asDiagonal();
 
   mat.block(6, 6, 3, 3) =
-      Eigen::Vector3d(theta_std.array().pow(2)).asDiagonal();
+      Eigen::Vector3d((theta_std.array() * DEGREE_2_RAD).pow(2)).asDiagonal();
 
   mat.block(9, 9, 3, 3) =
       pow(param.gyro_bias_std, 2) * Eigen::Matrix3d::Identity();

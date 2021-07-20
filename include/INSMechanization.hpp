@@ -50,7 +50,8 @@ protected:
   Eigen::Vector3d g_proj_n_;
 
   iNav::NavData GetNavState();
-  void SetNavState(const iNav::NavData& data);
+  void SetNavState(const iNav::NavData& nav_data);
+  void SetNavState(const iNav::NavData& nav_data, const iNav::IMUData imu_data);
 
 private:
   // member function
