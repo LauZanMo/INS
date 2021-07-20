@@ -20,6 +20,7 @@ using namespace std;
 string read_path = "/home/ubuntu/Dataset/";
 string imu_data_name = "IMU.bin";
 string ref_data_name = "Reference.bin";
+string output_name = "mechanization_result.txt";
 
 class RefData {
 public:
@@ -30,9 +31,10 @@ public:
 };
 
 int main(int, char **) {
-  // read files
+  // read and write files
   ifstream imu_data((read_path + imu_data_name).c_str(), ios::in | ios::binary);
   ifstream ref_data((read_path + ref_data_name).c_str(), ios::in | ios::binary);
+  ofstream result_data((read_path + output_name).c_str(), ios::trunc);
 
   if (!imu_data || !ref_data) exit(-1);
 
@@ -71,8 +73,8 @@ int main(int, char **) {
       iNav::NavData mechanization_output =
           ins_mechanization->MechanizationUpdate();
 
-      cout.precision(12);
-      cout << "---" << endl;
+      // cout.precision(12);
+      // cout << "---" << endl;
 
       // cout << "my position: " << endl;
       // cout << mechanization_output.pos.transpose() << endl;
@@ -86,11 +88,32 @@ int main(int, char **) {
       // cout << "ref velocity: " << endl;
       // cout << ref_vec[i - begin - 1].vel.transpose() << endl;
 
-      cout << "my attitude: " << endl;
-      cout << mechanization_output.att.transpose() << endl;
+      // cout << "my attitude: " << endl;
+      // cout << mechanization_output.att.transpose() << endl;
 
-      cout << "ref attitude: " << endl;
-      cout << ref_vec[i - begin-1].att.transpose() << endl;
+      // cout << "ref attitude: " << endl;
+      // cout << ref_vec[i - begin - 1].att.transpose() << endl;
+
+      result_data.precision(12);
+      result_data << mechanization_output.timestamp << " ";
+      result_data << mechanization_output.pos[0] - ref_vec[i - begin - 1].pos[0]
+                  << " "
+                  << mechanization_output.pos[1] - ref_vec[i - begin - 1].pos[1]
+                  << " "
+                  << mechanization_output.pos[2] - ref_vec[i - begin - 1].pos[2]
+                  << " ";
+      result_data << mechanization_output.vel[0] - ref_vec[i - begin - 1].vel[0]
+                  << " "
+                  << mechanization_output.vel[1] - ref_vec[i - begin - 1].vel[1]
+                  << " "
+                  << mechanization_output.vel[2] - ref_vec[i - begin - 1].vel[2]
+                  << " ";
+      result_data << mechanization_output.att[0] - ref_vec[i - begin - 1].att[0]
+                  << " "
+                  << mechanization_output.att[1] - ref_vec[i - begin - 1].att[1]
+                  << " "
+                  << mechanization_output.att[2] - ref_vec[i - begin - 1].att[2]
+                  << endl;
     }
   }
 }
